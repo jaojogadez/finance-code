@@ -217,6 +217,18 @@ html,body{
   transition:.15s;
 }
 .btn-google:hover{background:var(--bg2)}
+.btn-apple{
+  width:100%;padding:12px;border-radius:var(--r);
+  font-size:14px;font-weight:500;cursor:pointer;
+  border:0.5px solid var(--sep-mid);
+  background:#000;color:#fff;
+  font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  transition:.15s;margin-top:8px;
+}
+.btn-apple:hover{background:#1a1a1a}
+.dark .btn-apple{background:#fff;color:#000}
+.dark .btn-apple:hover{background:#f0f0f0}
 .auth-hint{text-align:center;margin-top:20px;font-size:12px;color:var(--label3)}
 .auth-err{
   background:var(--red-tint);color:var(--red);
@@ -1714,6 +1726,12 @@ table.nt td:not(.rn):not(.cell-editing){cursor:pointer}
         </svg>
         Continuar com Google
       </button>
+      <button class="btn-apple" id="btn-apple" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        Continuar com Apple
+      </button>
     </div>
 
     <!-- REGISTER -->
@@ -2628,21 +2646,22 @@ const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out
 const MONTHS_FULL  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 const CATS = {
-  'Salário':       {c:'#1DB954', bg:'rgba(29,185,84,.14)'},
-  'Renda Extra':   {c:'#27AE60', bg:'rgba(39,174,96,.14)'},
-  'Investimentos': {c:'#56CCF2', bg:'rgba(86,204,242,.14)'},
-  'Faculdade':     {c:'#2F80ED', bg:'rgba(47,128,237,.14)'},
-  'Alimentação':   {c:'#9B51E0', bg:'rgba(155,81,224,.14)'},
-  'Restaurante':   {c:'#BB6BD9', bg:'rgba(187,107,217,.14)'},
-  'Transporte':    {c:'#F2994A', bg:'rgba(242,153,74,.14)'},
-  'Uber':          {c:'#E0A800', bg:'rgba(224,168,0,.14)'},
-  'Moradia':       {c:'#2D9CDB', bg:'rgba(45,156,219,.14)'},
-  'Educação':      {c:'#2F80ED', bg:'rgba(47,128,237,.13)'},
-  'Saúde':         {c:'#EB5757', bg:'rgba(235,87,87,.14)'},
-  'Lazer':         {c:'#F2C94C', bg:'rgba(242,201,76,.14)'},
-  'Compras':       {c:'#E67E22', bg:'rgba(230,126,34,.14)'},
-  'Assinaturas':   {c:'#6B6B6B', bg:'rgba(107,107,107,.14)'},
-  'Recarga':       {c:'#F2C94C', bg:'rgba(242,201,76,.14)'},
+  'Salário':                  {c:'#1DB954', bg:'rgba(29,185,84,.14)'},
+  'Renda Extra':              {c:'#27AE60', bg:'rgba(39,174,96,.14)'},
+  'Investimentos':            {c:'#56CCF2', bg:'rgba(86,204,242,.14)'},
+  'Resgate de Investimentos': {c:'#00B4D8', bg:'rgba(0,180,216,.14)'},
+  'Faculdade':                {c:'#2F80ED', bg:'rgba(47,128,237,.14)'},
+  'Alimentação':              {c:'#9B51E0', bg:'rgba(155,81,224,.14)'},
+  'Restaurante':              {c:'#BB6BD9', bg:'rgba(187,107,217,.14)'},
+  'Transporte':               {c:'#F2994A', bg:'rgba(242,153,74,.14)'},
+  'Uber':                     {c:'#E0A800', bg:'rgba(224,168,0,.14)'},
+  'Moradia':                  {c:'#2D9CDB', bg:'rgba(45,156,219,.14)'},
+  'Educação':                 {c:'#2F80ED', bg:'rgba(47,128,237,.13)'},
+  'Saúde':                    {c:'#EB5757', bg:'rgba(235,87,87,.14)'},
+  'Lazer':                    {c:'#F2C94C', bg:'rgba(242,201,76,.14)'},
+  'Compras':                  {c:'#E67E22', bg:'rgba(230,126,34,.14)'},
+  'Assinaturas':              {c:'#6B6B6B', bg:'rgba(107,107,107,.14)'},
+  'Recarga':                  {c:'#F2C94C', bg:'rgba(242,201,76,.14)'},
 };
 
 let COLS = [
@@ -2709,6 +2728,9 @@ const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 firebase.initializeApp(FB_CONFIG);
 const fbAuth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+const appleProvider  = new firebase.auth.OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
 // init Supabase
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
@@ -2796,6 +2818,12 @@ function doGoogle() {
     .catch(err => showErr(err.message));
 }
 
+function doApple() {
+  hideErr();
+  fbAuth.signInWithPopup(appleProvider)
+    .catch(err => showErr(err.message));
+}
+
 function doRegister() {
   hideErr();
   const name  = document.getElementById('rn').value.trim();
@@ -2843,6 +2871,7 @@ function doLogout() {
 // Attach auth events
 document.getElementById('btn-login').addEventListener('click', doLogin);
 document.getElementById('btn-google').addEventListener('click', doGoogle);
+document.getElementById('btn-apple').addEventListener('click', doApple);
 document.getElementById('btn-reg').addEventListener('click', doRegister);
 document.getElementById('li-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('li-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('li-pass').focus(); });
@@ -3723,7 +3752,22 @@ function renderMobileExtrato(rows) {
   if (!el) return;
 
   if (rows.length === 0) {
-    el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--label3);font-size:15px">Nenhuma transação</div>`;
+    el.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:48px 24px 24px;color:var(--label3);font-size:15px';
+    empty.textContent = 'Nenhuma transação';
+    el.appendChild(empty);
+
+    const addRow = document.createElement('div');
+    addRow.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 20px;background:var(--card);border-top:0.5px solid var(--sep-thin);cursor:pointer;-webkit-tap-highlight-color:transparent';
+    addRow.innerHTML = `
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="var(--blue)" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <span style="font-size:15px;font-weight:500;color:var(--blue)">Adicionar movimentação</span>
+    `;
+    addRow.addEventListener('click', addInlineRow);
+    el.appendChild(addRow);
     return;
   }
 
@@ -3957,7 +4001,7 @@ function renderTxDetail() {
     </div>
 
     <div class="tx-detail-row" onclick="txdPickBank(${id})" style="cursor:pointer;-webkit-tap-highlight-color:transparent">
-      <span class="tx-detail-lbl">Banco</span>
+      <span class="tx-detail-lbl">${t.cat === 'Resgate de Investimentos' ? 'De (Corretora)' : 'Banco'}</span>
       <span class="txd-tap-val">
         ${bk ? bk.logo : ''}
         <span style="font-size:13px;font-weight:600;color:var(--label)">${esc(t.bank)}</span>
@@ -3966,7 +4010,7 @@ function renderTxDetail() {
     </div>
 
     <div class="tx-detail-row">
-      <span class="tx-detail-lbl">Destinatário</span>
+      <span class="tx-detail-lbl">${t.cat === 'Resgate de Investimentos' ? 'Para (Conta)' : 'Destinatário'}</span>
       <input class="txd-input" value="${esc(t.recipient||'')}" placeholder="—"
         onblur="txdSave(${id},'recipient',this.value)">
     </div>
@@ -4677,6 +4721,18 @@ function updateWallet() {
 
   TXS.forEach(t => {
     if (!t.ok) return;
+    const isResgate = t.cat === 'Resgate de Investimentos';
+    // Resgate: move value from inv back to cc (reverse of Investimentos aporte)
+    if (isResgate && t.type === 'Transferência') {
+      inv -= t.val; cc += t.val;
+      // credit the destination bank (recipient field used as dest bank name)
+      const destBank = t.recipient || t.bank;
+      if (destBank && destBank !== 'Dinheiro') {
+        if (!bankMap[destBank]) bankMap[destBank] = 0;
+        bankMap[destBank] += t.val;
+      }
+      return;
+    }
     if (t.type === 'Transferência') { cc -= t.val; inv += t.val; return; }
     const sign = t.type === 'Entrada' ? 1 : -1;
     const isInvest = t.cat === 'Investimentos';
@@ -4797,7 +4853,8 @@ let catModalActive = null; // currently selected cat name
 if (!window.CAT_PRESETS) window.CAT_PRESETS = {
   'Salário':       { desc: 'Salário mensal CLT',        type: 'Entrada',       fv: 'Fixo',     bank: '', recipient: 'Empresa',      val: 0 },
   'Renda Extra':   { desc: 'Renda extra',               type: 'Entrada',       fv: 'Variável', bank: '', recipient: '',             val: 0 },
-  'Investimentos': { desc: 'Aporte investimento',       type: 'Transferência', fv: 'Variável', bank: '', recipient: 'Corretora',    val: 0 },
+  'Investimentos':            { desc: 'Aporte investimento',   type: 'Transferência', fv: 'Variável', bank: '', recipient: 'Corretora',    val: 0 },
+  'Resgate de Investimentos': { desc: 'Resgate investimento',   type: 'Transferência', fv: 'Variável', bank: '', recipient: '',             val: 0 },
   'Faculdade':     { desc: 'Mensalidade faculdade',     type: 'Saída',         fv: 'Fixo',     bank: '', recipient: 'Universidade', val: 0 },
   'Alimentação':   { desc: 'Compras supermercado',      type: 'Saída',         fv: 'Variável', bank: '', recipient: '',             val: 0 },
   'Restaurante':   { desc: 'Refeição restaurante',      type: 'Saída',         fv: 'Variável', bank: '', recipient: '',             val: 0 },
