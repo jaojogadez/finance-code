@@ -2082,7 +2082,13 @@ table.nt td:not(.rn):not(.cell-editing){cursor:pointer}
 
   <!-- MOBILE BANK DISTRIBUTION -->
   <div id="mob-distrib" style="display:none;flex-direction:column;background:var(--grouped);padding:16px 16px 120px;gap:0">
-    <div style="font-size:12px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Distribuição por Banco</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.06em">Distribuição por Banco</div>
+      <button onclick="openInitialBalModal()" style="background:none;border:none;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:4px;padding:4px 0">
+        <svg viewBox="0 0 13 13" fill="none" style="width:12px;height:12px"><path d="M9 2l2 2-6 6H3V8L9 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Editar saldos
+      </button>
+    </div>
     <div id="mob-bank-list" style="background:var(--card);border-radius:14px;overflow:hidden;border:0.5px solid var(--sep-thin);box-shadow:var(--shadow-xs)"></div>
   </div>
 
@@ -2230,7 +2236,12 @@ table.nt td:not(.rn):not(.cell-editing){cursor:pointer}
 
     <!-- Por banco -->
     <div class="ws-section" style="padding-bottom:8px">
-      <div class="ws-title" style="margin-bottom:0">Distribuição por Banco</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="ws-title" style="margin-bottom:0">Distribuição por Banco</div>
+        <button class="btn-icon" onclick="openInitialBalModal()" title="Editar saldos iniciais" style="color:var(--label3);width:26px;height:26px">
+          <svg viewBox="0 0 13 13" fill="none" style="width:13px;height:13px"><path d="M9 2l2 2-6 6H3V8L9 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M1 12h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
     </div>
     <div id="ws-banks"></div>
 
@@ -2734,6 +2745,11 @@ appleProvider.addScope('name');
 
 // init Supabase
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
+// Tabelas necessárias no Supabase:
+// create table transactions (uid text, local_id int, data jsonb, primary key (uid, local_id));
+// create table categories   (uid text, name text,    data jsonb, primary key (uid, name));
+// create table cat_presets  (uid text, name text,    data jsonb, primary key (uid, name));
+// create table user_meta    (uid text, key  text,    data jsonb, primary key (uid, key));
 
 let _currentUid = null; // Firebase UID do usuário logado
 
@@ -4273,6 +4289,9 @@ const BANKS = {
 let BANK_OPTS = Object.keys(BANKS);
 window.BANKS = BANKS; // expose for async logo loader
 
+// ── Saldos iniciais (pré-existentes antes das transações) ──
+let INITIAL_BALANCES = { _inv: 0 }; // _inv = saldo inicial de investimentos; resto são bancos
+
 // Palette for new categories
 const NEW_CAT_COLORS = [
   {c:'#E74C3C',bg:'rgba(231,76,60,.14)'},{c:'#3498DB',bg:'rgba(52,152,219,.14)'},
@@ -4718,6 +4737,15 @@ function updateWallet() {
   // Compute balances from ALL paid transactions across all months
   const bankMap = {};
   let cc = 0, inv = 0, cashAmt = 0;
+
+  // ── Apply initial balances ──
+  inv = INITIAL_BALANCES._inv || 0;
+  Object.entries(INITIAL_BALANCES).forEach(([k, v]) => {
+    if (k === '_inv') return;
+    if (k === 'Dinheiro') { cashAmt += v; return; }
+    bankMap[k] = (bankMap[k] || 0) + v;
+    cc += v;
+  });
 
   TXS.forEach(t => {
     if (!t.ok) return;
@@ -5932,8 +5960,138 @@ function notif(msg) {
 }
 
 // ══════════════════════════════════════════
-//  INIT
+//  SALDOS INICIAIS
 // ══════════════════════════════════════════
+function openInitialBalModal() {
+  renderInitialBalBody();
+  document.getElementById('init-bal-bg').classList.add('on');
+}
+function closeInitialBalModal() {
+  document.getElementById('init-bal-bg').classList.remove('on');
+}
+document.getElementById('init-bal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('init-bal-bg')) closeInitialBalModal();
+});
+
+function renderInitialBalBody() {
+  const body = document.getElementById('init-bal-body');
+  let html = '';
+
+  // Investimentos row (always present)
+  const invVal = INITIAL_BALANCES._inv || 0;
+  html += `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Investimentos</div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:10px;padding:10px 14px">
+        <div style="width:32px;height:32px;border-radius:9px;background:var(--green-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 10l3-3 3 3 6-6" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span style="flex:1;font-size:14px;font-weight:600;color:var(--label)">Saldo em Investimentos</span>
+        <input type="text" inputmode="decimal" id="init-inv"
+          value="${invVal > 0 ? invVal.toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''}"
+          placeholder="R$ 0,00"
+          style="width:120px;text-align:right;background:var(--card);border:0.5px solid var(--sep-mid);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--label);outline:none"
+          onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--sep-mid)'">
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Bancos</div>
+    <div id="init-bank-rows" style="display:flex;flex-direction:column;gap:8px">`;
+
+  // Bank rows
+  const bankEntries = Object.entries(INITIAL_BALANCES).filter(([k]) => k !== '_inv');
+  if (bankEntries.length === 0) {
+    html += `<div id="init-no-banks" style="text-align:center;padding:16px;color:var(--label3);font-size:13px">Nenhum banco adicionado</div>`;
+  } else {
+    bankEntries.forEach(([bank, val]) => {
+      const logo = getBankLogo(bank);
+      const bgCol = (BANKS[bank]?.color || '#888') + '20';
+      html += `
+        <div class="init-bank-row" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:10px;padding:10px 14px">
+          <div style="width:32px;height:32px;border-radius:9px;background:${bgCol};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+            ${logo || `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="2" stroke="var(--label4)" stroke-width="1.2"/><path d="M1 6h12" stroke="var(--label4)" stroke-width="1.2"/></svg>`}
+          </div>
+          <select class="init-bank-sel" style="flex:1;background:var(--card);border:0.5px solid var(--sep-mid);border-radius:8px;padding:6px 8px;font-family:var(--font);font-size:13px;color:var(--label);outline:none">
+            ${BANK_OPTS.filter(b => b !== 'Dinheiro').map(b => `<option value="${esc(b)}"${b===bank?' selected':''}>${esc(b)}</option>`).join('')}
+          </select>
+          <input type="text" inputmode="decimal" class="init-bank-val"
+            value="${val > 0 ? val.toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''}"
+            placeholder="R$ 0,00"
+            style="width:110px;text-align:right;background:var(--card);border:0.5px solid var(--sep-mid);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--label);outline:none"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--sep-mid)'">
+          <button onclick="this.closest('.init-bank-row').remove()" style="background:none;border:none;color:var(--label4);cursor:pointer;padding:4px;flex-shrink:0" title="Remover">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>`;
+    });
+  }
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+function addInitialBalRow() {
+  const container = document.getElementById('init-bank-rows');
+  // remove "nenhum banco" placeholder if present
+  document.getElementById('init-no-banks')?.remove();
+  const row = document.createElement('div');
+  row.className = 'init-bank-row';
+  row.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:10px;padding:10px 14px';
+  row.innerHTML = `
+    <div style="width:32px;height:32px;border-radius:9px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="2" stroke="var(--label4)" stroke-width="1.2"/><path d="M1 6h12" stroke="var(--label4)" stroke-width="1.2"/></svg>
+    </div>
+    <select class="init-bank-sel" style="flex:1;background:var(--card);border:0.5px solid var(--sep-mid);border-radius:8px;padding:6px 8px;font-family:var(--font);font-size:13px;color:var(--label);outline:none">
+      ${BANK_OPTS.filter(b => b !== 'Dinheiro').map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('')}
+    </select>
+    <input type="text" inputmode="decimal" class="init-bank-val"
+      placeholder="R$ 0,00"
+      style="width:110px;text-align:right;background:var(--card);border:0.5px solid var(--sep-mid);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--label);outline:none"
+      onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--sep-mid)'">
+    <button onclick="this.closest('.init-bank-row').remove()" style="background:none;border:none;color:var(--label4);cursor:pointer;padding:4px;flex-shrink:0" title="Remover">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>`;
+  container.appendChild(row);
+  row.querySelector('.init-bank-val').focus();
+}
+
+function saveInitialBal() {
+  // Read investimentos
+  const invRaw = document.getElementById('init-inv')?.value || '0';
+  INITIAL_BALANCES = { _inv: parseBankVal(invRaw) || 0 };
+
+  // Read bank rows
+  document.querySelectorAll('.init-bank-row').forEach(row => {
+    const bank = row.querySelector('.init-bank-sel')?.value;
+    const valRaw = row.querySelector('.init-bank-val')?.value || '0';
+    if (bank) INITIAL_BALANCES[bank] = parseBankVal(valRaw) || 0;
+  });
+
+  closeInitialBalModal();
+  updateWallet();
+  scheduleSave();
+  notif('Saldos iniciais salvos ✓');
+}
+
+// ── Hook sbLoad/sbSave for initial balances ──
+const _origSbLoad = sbLoad;
+sbLoad = async function() {
+  await _origSbLoad();
+  // load initial balances from supabase meta table (stored as single row)
+  try {
+    const { data } = await sb.from('user_meta').select('data').eq('uid', _currentUid).eq('key', 'initial_balances').single();
+    if (data?.data) INITIAL_BALANCES = data.data;
+  } catch(e) {}
+};
+
+const _origSbSave = sbSave;
+sbSave = async function() {
+  await _origSbSave();
+  try {
+    await sb.from('user_meta').upsert(
+      { uid: _currentUid, key: 'initial_balances', data: INITIAL_BALANCES },
+      { onConflict: 'uid,key' }
+    );
+  } catch(e) {}
+};
 window.addEventListener('DOMContentLoaded', () => {
   // apply default dark theme
   document.body.classList.add('dark');
@@ -5943,5 +6101,32 @@ window.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('resize', () => { render(); });
 </script>
+<!-- INITIAL BALANCE MODAL -->
+<div class="modal-bg" id="init-bal-bg">
+  <div class="modal" style="max-width:460px;padding:0;overflow:hidden">
+    <div style="padding:20px 22px 16px;border-bottom:0.5px solid var(--sep-thin);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;letter-spacing:-.3px">Saldos Iniciais</div>
+        <div style="font-size:12px;color:var(--label2);margin-top:2px">Informe o saldo que já existia antes de começar a usar o app</div>
+      </div>
+      <button class="btn-icon" onclick="closeInitialBalModal()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div style="padding:16px 22px;max-height:60vh;overflow-y:auto" id="init-bal-body">
+      <!-- filled by JS -->
+    </div>
+
+    <div style="padding:14px 22px 20px;border-top:0.5px solid var(--sep-thin);display:flex;gap:8px">
+      <button onclick="addInitialBalRow()" class="btn" style="gap:5px;color:var(--blue)">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Adicionar banco
+      </button>
+      <button onclick="saveInitialBal()" class="btn" style="flex:1;justify-content:center;background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600">Salvar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
