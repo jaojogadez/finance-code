@@ -6254,28 +6254,64 @@ async function pluggyConnectToken(itemId) {
 }
 
 // ── Carrega o widget SDK da Pluggy ──
+// ── Abre o widget da Pluggy via popup/iframe (sem SDK) ──
 function loadPluggyWidget() {
-  return new Promise((resolve, reject) => {
-    if (window.PluggyConnect) { resolve(); return; }
-    // Use jsDelivr CDN — official npm package served publicly
-    const urls = [
-      'https://cdn.jsdelivr.net/npm/pluggy-connect-sdk/dist/pluggy-connect.min.js',
-      'https://cdn.jsdelivr.net/npm/pluggy-connect-sdk@latest/dist/pluggy-connect.min.js',
-      'https://unpkg.com/pluggy-connect-sdk/dist/pluggy-connect.min.js',
-    ];
-    let idx = 0;
-    function tryNext() {
-      if (idx >= urls.length) {
-        reject(new Error('Widget da Pluggy indisponível — verifique sua conexão'));
-        return;
-      }
-      const s = document.createElement('script');
-      s.src = urls[idx++];
-      s.onload  = () => { if (window.PluggyConnect) resolve(); else tryNext(); };
-      s.onerror = () => tryNext();
-      document.head.appendChild(s);
+  return Promise.resolve(); // não precisa carregar SDK
+}
+
+function openPluggyWidget(connectToken, onSuccess, onError, onClose) {
+  // Remove instância anterior se existir
+  document.getElementById('pluggy-widget-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pluggy-widget-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+
+  const container = document.createElement('div');
+  container.style.cssText = 'position:relative;width:min(480px,95vw);height:min(700px,90vh);border-radius:20px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.4)';
+
+  // Botão fechar
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:12px;right:12px;z-index:10;background:rgba(0,0,0,.5);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center';
+  closeBtn.onclick = () => { overlay.remove(); onClose?.(); };
+
+  // iframe com o connect token
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://connect.pluggy.ai/?connectToken=${connectToken}`;
+  iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:20px';
+  iframe.allow = 'camera; microphone';
+
+  // Ouvir mensagens do iframe (postMessage da Pluggy)
+  function handleMessage(e) {
+    if (!e.origin.includes('pluggy.ai')) return;
+    const data = e.data || {};
+    if (data.type === 'PLUGGY_CONNECT_SUCCESS' || data.event === 'SUCCESS') {
+      window.removeEventListener('message', handleMessage);
+      overlay.remove();
+      onSuccess?.(data);
     }
-    tryNext();
+    if (data.type === 'PLUGGY_CONNECT_ERROR' || data.event === 'ERROR') {
+      window.removeEventListener('message', handleMessage);
+      overlay.remove();
+      onError?.(data);
+    }
+    if (data.type === 'PLUGGY_CONNECT_CLOSE' || data.event === 'CLOSE') {
+      window.removeEventListener('message', handleMessage);
+      overlay.remove();
+      onClose?.();
+    }
+  }
+  window.addEventListener('message', handleMessage);
+
+  container.appendChild(closeBtn);
+  container.appendChild(iframe);
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+
+  // Fechar clicando fora
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.remove(); window.removeEventListener('message', handleMessage); onClose?.(); }
   });
 }
 
@@ -6341,24 +6377,30 @@ function ofRenderBanks() {
 async function ofConnectBank() {
   const btn = document.getElementById('of-connect-btn');
   btn.disabled = true;
-  ofStatus('Carregando widget…', '');
+  ofStatus('Obtendo token de conexão…', '');
   try {
-    await loadPluggyWidget();
     const connectToken = await pluggyConnectToken();
     ofStatus('', '');
-    const widget = new PluggyConnect({
+    openPluggyWidget(
       connectToken,
-      includeSandbox: true,
-      onSuccess: async (data) => {
-        const itemId = data.item?.id;
-        if (!itemId) { ofStatus('Item ID não recebido', 'red'); return; }
+      async (data) => {
+        const itemId = data.itemId || data.item?.id || data.payload?.itemId;
+        if (!itemId) {
+          ofStatus('Sincronizando…', '');
+          try {
+            const result = await pluggyProxy('/items?pageSize=5');
+            const latest = result.results?.[0];
+            if (latest) await ofPollItem(latest.id);
+            else ofStatus('Conectado! Sincronize manualmente.', 'green');
+          } catch(e2) { ofStatus('Conectado! Sincronize manualmente.', 'green'); }
+          return;
+        }
         ofStatus('Sincronizando dados…', '');
         await ofPollItem(itemId);
       },
-      onError:  (err) => ofStatus('Erro: ' + (err.message || JSON.stringify(err)), 'red'),
-      onClose:  ()    => ofStatus('', ''),
-    });
-    widget.init();
+      (err) => ofStatus('Erro: ' + (err.message || JSON.stringify(err)), 'red'),
+      ()    => ofStatus('', '')
+    );
   } catch(e) {
     ofStatus('Erro: ' + e.message, 'red');
   } finally {
