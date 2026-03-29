@@ -6230,13 +6230,16 @@ let _ofItems = [];
 
 // ── Chama a Edge Function como proxy para a Pluggy API ──
 async function pluggyProxy(path, method, body) {
-  const { data: { session } } = await sb.auth.getSession();
-  const jwt = session?.access_token || '';
+  let jwt = '';
+  try {
+    const result = await sb.auth.getSession();
+    jwt = result?.data?.session?.access_token || '';
+  } catch(e) {}
   const res = await fetch(`${OF_PROXY}?path=${encodeURIComponent(path)}`, {
     method: method || 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt}`,
+      ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
