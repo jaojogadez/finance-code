@@ -1794,6 +1794,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;background
           <div class="mob-topbar-name" id="mob-topbar-name">Usuário</div>
         </div>
       </div>
+      <div class="mob-topbar-right">
+        <button onclick="openOFModal()" style="display:flex;align-items:center;gap:5px;height:34px;padding:0 12px;border-radius:10px;border:none;background:linear-gradient(135deg,#00B4D8,#0077B6);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,180,216,.4);letter-spacing:.01em">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1C3.46 1 1 3.46 1 6.5S3.46 12 6.5 12 12 9.54 12 6.5 9.54 1 6.5 1Z" stroke="white" stroke-width="1.2"/><path d="M1 6.5h11M6.5 1C5 3 4 4.7 4 6.5S5 10 6.5 12M6.5 1C8 3 9 4.7 9 6.5S8 10 6.5 12" stroke="white" stroke-width="1.2"/></svg>
+          Conectar
+        </button>
+      </div>
     </div>
 
     <!-- Desktop logo row (hidden on mobile via CSS) -->
@@ -1869,6 +1875,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;background
           </div>
         </div>
       </div>
+
+      <!-- Open Finance button -->
+      <button class="btn desk-only" onclick="openOFModal()" id="btn-of" style="gap:6px;background:linear-gradient(135deg,#00B4D8,#0077B6);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(0,180,216,.35)">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1C3.46 1 1 3.46 1 6.5S3.46 12 6.5 12 12 9.54 12 6.5 9.54 1 6.5 1Z" stroke="white" stroke-width="1.2"/><path d="M1 6.5h11M6.5 1C5 3 4 4.7 4 6.5S5 10 6.5 12M6.5 1C8 3 9 4.7 9 6.5S8 10 6.5 12" stroke="white" stroke-width="1.2"/></svg>
+        Open Finance
+      </button>
 
       <!-- User avatar — primary trigger for settings menu -->
       <button class="u-btn" id="u-av" aria-expanded="false" aria-controls="settings-panel" aria-label="Abrir configurações">?</button>
@@ -6209,7 +6221,247 @@ sbSave = async function() {
     );
   } catch(e) {}
 };
-window.addEventListener('DOMContentLoaded', () => {
+// ══════════════════════════════════════════
+//  OPEN FINANCE — Pluggy Integration
+// ══════════════════════════════════════════
+const PLUGGY_CLIENT_ID     = '6ade5a85-97af-438c-a69f-98efa735b561';
+const PLUGGY_CLIENT_SECRET = '05bfa2ea-92c7-4b11-920d-c2a4743c5c9a';
+const PLUGGY_API           = 'https://api.pluggy.ai';
+
+let _pluggyToken    = null;
+let _pluggyTokenExp = 0;
+let _ofItems        = [];
+
+async function pluggyToken() {
+  if (_pluggyToken && Date.now() < _pluggyTokenExp - 60000) return _pluggyToken;
+  const res  = await fetch(`${PLUGGY_API}/auth`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ clientId: PLUGGY_CLIENT_ID, clientSecret: PLUGGY_CLIENT_SECRET }),
+  });
+  const data = await res.json();
+  if (!data.apiKey) throw new Error('Pluggy auth falhou');
+  _pluggyToken    = data.apiKey;
+  _pluggyTokenExp = Date.now() + 2*60*60*1000;
+  return _pluggyToken;
+}
+
+async function pluggyConnectToken(itemId) {
+  const token = await pluggyToken();
+  const res   = await fetch(`${PLUGGY_API}/connect_token`, {
+    method:'POST', headers:{'Content-Type':'application/json','X-API-KEY':token},
+    body: JSON.stringify(itemId ? { itemId } : {}),
+  });
+  const data  = await res.json();
+  return data.accessToken;
+}
+
+function loadPluggyWidget() {
+  return new Promise((resolve, reject) => {
+    if (window.PluggyConnect) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function openOFModal() {
+  document.getElementById('of-modal-bg').classList.add('on');
+  ofRenderBanks();
+}
+function closeOFModal() {
+  document.getElementById('of-modal-bg').classList.remove('on');
+}
+document.getElementById('of-modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('of-modal-bg')) closeOFModal();
+});
+
+function ofStatus(msg, color) {
+  const el = document.getElementById('of-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display   = msg ? 'block' : 'none';
+  el.style.background = color==='green'?'var(--green-tint)':color==='red'?'var(--red-tint)':'var(--bg2)';
+  el.style.color      = color==='green'?'var(--green)':color==='red'?'var(--red)':'var(--label2)';
+}
+
+function ofRenderBanks() {
+  const section = document.getElementById('of-banks-section');
+  const list    = document.getElementById('of-banks-list');
+  const syncBtn = document.getElementById('of-sync-btn');
+  const connLbl = document.getElementById('of-connect-lbl');
+  if (!section) return;
+  if (_ofItems.length === 0) {
+    section.style.display = 'none'; syncBtn.style.display = 'none';
+    if (connLbl) connLbl.textContent = 'Conectar banco';
+    return;
+  }
+  section.style.display = 'block'; syncBtn.style.display = 'flex';
+  if (connLbl) connLbl.textContent = 'Adicionar outro banco';
+  list.innerHTML = _ofItems.map(item => `
+    <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border-radius:10px;padding:11px 14px">
+      <div style="width:32px;height:32px;border-radius:9px;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        ${item.connector?.logoUrl?`<img src="${item.connector.logoUrl}" style="width:26px;height:26px;border-radius:6px;object-fit:contain">`:`<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="2" stroke="var(--blue)" stroke-width="1.2"/><path d="M1 6h12" stroke="var(--blue)" stroke-width="1.2"/></svg>`}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--label)">${item.connector?.name||'Banco'}</div>
+        <div style="font-size:12px;color:${item.status==='UPDATED'?'var(--green)':item.status==='UPDATING'?'var(--orange)':'var(--red)'};margin-top:2px">
+          ${item.status==='UPDATED'?'✓ Sincronizado':item.status==='UPDATING'?'Sincronizando…':'Erro de conexão'}
+        </div>
+      </div>
+      <button onclick="ofDisconnect('${item.id}')" style="background:none;border:none;color:var(--label4);cursor:pointer;padding:4px" title="Desconectar">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+async function ofConnectBank() {
+  const btn = document.getElementById('of-connect-btn');
+  btn.disabled = true; ofStatus('Carregando widget…','');
+  try {
+    await loadPluggyWidget();
+    const connectToken = await pluggyConnectToken();
+    ofStatus('','');
+    const widget = new PluggyConnect({
+      connectToken, includeSandbox: true,
+      onSuccess: async (data) => {
+        const itemId = data.item?.id;
+        if (!itemId) { ofStatus('Erro: item ID não recebido','red'); return; }
+        ofStatus('Conectando e sincronizando…','');
+        await ofPollItem(itemId);
+      },
+      onError:  (err) => ofStatus('Erro: '+(err.message||err),'red'),
+      onClose:  ()    => ofStatus('',''),
+    });
+    widget.init();
+  } catch(e) {
+    ofStatus('Erro: '+e.message,'red');
+  } finally { btn.disabled = false; }
+}
+
+async function ofPollItem(itemId, attempts) {
+  attempts = attempts||0;
+  if (attempts > 30) { ofStatus('Timeout — sincronize manualmente','red'); return; }
+  try {
+    const token = await pluggyToken();
+    const res   = await fetch(`${PLUGGY_API}/items/${itemId}`,{headers:{'X-API-KEY':token}});
+    const item  = await res.json();
+    const idx   = _ofItems.findIndex(i=>i.id===itemId);
+    if (idx===-1) _ofItems.push(item); else _ofItems[idx]=item;
+    ofSaveItems(); ofRenderBanks();
+    if (item.status==='UPDATED') {
+      await ofSyncItem(itemId);
+      ofStatus('Banco sincronizado com sucesso ✓','green');
+      setTimeout(()=>ofStatus('',''),4000);
+    } else if (item.status==='UPDATING') {
+      ofStatus('Importando transações…','');
+      setTimeout(()=>ofPollItem(itemId,attempts+1),3000);
+    } else {
+      ofStatus('Status: '+item.status,'red');
+    }
+  } catch(e) { ofStatus('Erro: '+e.message,'red'); }
+}
+
+async function ofSyncAll() {
+  const btn = document.getElementById('of-sync-btn');
+  btn.disabled = true; ofStatus('Sincronizando…','');
+  try {
+    for (const item of _ofItems) await ofSyncItem(item.id);
+    ofStatus('Todos sincronizados ✓','green');
+    setTimeout(()=>ofStatus('',''),4000);
+    render(); updateWallet();
+  } catch(e) { ofStatus('Erro: '+e.message,'red'); }
+  finally { btn.disabled = false; }
+}
+
+async function ofSyncItem(itemId) {
+  const token  = await pluggyToken();
+  const accRes = await fetch(`${PLUGGY_API}/accounts?itemId=${itemId}`,{headers:{'X-API-KEY':token}});
+  const accData= await accRes.json();
+  const accs   = accData.results||[];
+
+  for (const acc of accs) {
+    const bankName = acc.institution?.name || acc.name || 'Open Finance';
+    const balance  = acc.balance||0;
+    if (['BANK','CHECKING','SAVINGS'].includes(acc.type)) INITIAL_BALANCES[bankName] = balance;
+    if (acc.type==='INVESTMENT') INITIAL_BALANCES._inv = (INITIAL_BALANCES._inv||0)+balance;
+
+    const today  = new Date().toISOString().split('T')[0];
+    const from   = `${curYear}-01-01`;
+    const txRes  = await fetch(`${PLUGGY_API}/transactions?accountId=${acc.id}&from=${from}&to=${today}&pageSize=500`,{headers:{'X-API-KEY':token}});
+    const txData = await txRes.json();
+    const ptxs   = txData.results||[];
+
+    ptxs.forEach(ptx => {
+      if (TXS.find(t=>t.pluggyId===ptx.id)) return; // skip duplicates
+      const d  = new Date(ptx.date);
+      TXS.push({
+        id:nxtId++, pluggyId:ptx.id, ok:true,
+        cat:      ofGuessCategory(ptx.description||ptx.category||''),
+        val:      Math.abs(ptx.amount),
+        desc:     ptx.description||ptx.category||'—',
+        fv:       'Variável',
+        type:     ptx.type==='CREDIT'?'Entrada':'Saída',
+        date:     d.toISOString().split('T')[0],
+        recipient:'',
+        bank:     bankName,
+        mo:       d.getMonth(),
+        yr:       d.getFullYear(),
+      });
+    });
+  }
+  scheduleSave(); updateWallet(); render();
+}
+
+function ofGuessCategory(desc) {
+  desc = (desc||'').toLowerCase();
+  if (/salário|salary|holerite|folha/.test(desc))          return 'Salário';
+  if (/uber|99pop|taxi|cabify/.test(desc))                  return 'Uber';
+  if (/ifood|rappi|delivery|restaur|lanche|burger/.test(desc)) return 'Restaurante';
+  if (/supermercado|mercado|carrefour|extra|atacad/.test(desc)) return 'Alimentação';
+  if (/netflix|spotify|prime|youtube|disney|hbo/.test(desc))   return 'Assinaturas';
+  if (/faculdade|universidade|escola|mensalidade/.test(desc))   return 'Faculdade';
+  if (/farmácia|saúde|hospital|médico|plano|unimed/.test(desc)) return 'Saúde';
+  if (/aluguel|condomín|moradia|imobili/.test(desc))            return 'Moradia';
+  if (/invest|tesouro|ações|fundo|xp|rico|corretora/.test(desc)) return 'Investimentos';
+  if (/sptrans|passagem|metrô|ônibus|recarga/.test(desc))       return 'Recarga';
+  return 'Compras';
+}
+
+async function ofDisconnect(itemId) {
+  try {
+    const token = await pluggyToken();
+    await fetch(`${PLUGGY_API}/items/${itemId}`,{method:'DELETE',headers:{'X-API-KEY':token}});
+    _ofItems = _ofItems.filter(i=>i.id!==itemId);
+    TXS = TXS.filter(t=>!t.pluggyId);
+    ofSaveItems(); ofRenderBanks(); render(); updateWallet();
+    notif('Banco desconectado');
+  } catch(e) { notif('Erro: '+e.message); }
+}
+
+function ofSaveItems() {
+  if (!_currentUid) return;
+  sb.from('user_meta').upsert({uid:_currentUid,key:'of_items',data:_ofItems},{onConflict:'uid,key'})
+    .catch(e=>console.warn('ofSaveItems',e));
+}
+async function ofLoadItems() {
+  if (!_currentUid) return;
+  try {
+    const {data} = await sb.from('user_meta').select('data').eq('uid',_currentUid).eq('key','of_items').single();
+    if (data?.data) _ofItems = data.data;
+  } catch(e) {}
+}
+
+// hook ofLoadItems into sbLoad chain
+const _sbLoadBeforeOF = sbLoad;
+sbLoad = async function() {
+  await _sbLoadBeforeOF();
+  await ofLoadItems();
+};
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
   // apply default dark theme
   document.body.classList.add('dark');
   const spLbl = document.getElementById('sp-theme-lbl');
@@ -6241,6 +6493,74 @@ window.addEventListener('resize', () => { render(); });
         Adicionar banco
       </button>
       <button onclick="saveInitialBal()" class="btn" style="flex:1;justify-content:center;background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OPEN FINANCE MODAL -->
+<div class="modal-bg" id="of-modal-bg" style="z-index:800">
+  <div class="modal" style="max-width:500px;padding:0;overflow:hidden">
+
+    <!-- Header -->
+    <div style="padding:22px 24px 16px;border-bottom:0.5px solid var(--sep-thin);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#00B4D8,#0077B6);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 13 13" fill="none"><path d="M6.5 1C3.46 1 1 3.46 1 6.5S3.46 12 6.5 12 12 9.54 12 6.5 9.54 1 6.5 1Z" stroke="white" stroke-width="1.3"/><path d="M1 6.5h11M6.5 1C5 3 4 4.7 4 6.5S5 10 6.5 12M6.5 1C8 3 9 4.7 9 6.5S8 10 6.5 12" stroke="white" stroke-width="1.3"/></svg>
+          </div>
+          <div style="font-size:16px;font-weight:700;letter-spacing:-.3px">Open Finance</div>
+        </div>
+        <div style="font-size:12px;color:var(--label2)">Conecte seus bancos e sincronize automaticamente</div>
+      </div>
+      <button class="btn-icon" onclick="closeOFModal()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div id="of-body" style="padding:20px 24px 24px">
+
+      <!-- Connected banks list -->
+      <div id="of-banks-section" style="display:none;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Bancos Conectados</div>
+        <div id="of-banks-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+
+      <!-- Connect new bank button -->
+      <button id="of-connect-btn" onclick="ofConnectBank()" style="
+        width:100%;height:48px;border-radius:14px;
+        background:linear-gradient(135deg,#00B4D8,#0077B6);
+        color:#fff;border:none;
+        font-family:var(--font);font-size:15px;font-weight:700;
+        cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+        box-shadow:0 4px 16px rgba(0,180,216,.4);transition:.15s;
+        margin-bottom:12px;
+      ">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+        <span id="of-connect-lbl">Conectar banco</span>
+      </button>
+
+      <!-- Sync button (shown when has connections) -->
+      <button id="of-sync-btn" onclick="ofSyncAll()" style="display:none;
+        width:100%;height:42px;border-radius:12px;
+        background:var(--bg2);color:var(--label);
+        border:0.5px solid var(--sep-mid);
+        font-family:var(--font);font-size:14px;font-weight:600;
+        cursor:pointer;display:none;align-items:center;justify-content:center;gap:7px;
+        transition:.15s;margin-bottom:12px;
+      ">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 2.5A6 6 0 0 0 2 7M2 11.5A6 6 0 0 0 12 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M12 2.5V5.5H9M2 11.5V8.5H5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sincronizar agora
+      </button>
+
+      <!-- Status message -->
+      <div id="of-status" style="display:none;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:500"></div>
+
+      <!-- Info footer -->
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg2);border-radius:10px;margin-top:4px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6.5" stroke="var(--blue)" stroke-width="1.2"/><path d="M8 7v4M8 5.5v.5" stroke="var(--blue)" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <div style="font-size:12px;color:var(--label3);line-height:1.5">Integração via <strong style="color:var(--label2)">Pluggy</strong> — Open Finance regulado pelo Banco Central. Seus dados são lidos apenas para leitura, nunca para movimentação.</div>
+      </div>
     </div>
   </div>
 </div>
