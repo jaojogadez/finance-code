@@ -6257,11 +6257,25 @@ async function pluggyConnectToken(itemId) {
 function loadPluggyWidget() {
   return new Promise((resolve, reject) => {
     if (window.PluggyConnect) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src     = 'https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
-    s.onload  = resolve;
-    s.onerror = () => reject(new Error('Falha ao carregar widget da Pluggy'));
-    document.head.appendChild(s);
+    // Use jsDelivr CDN — official npm package served publicly
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/pluggy-connect-sdk/dist/pluggy-connect.min.js',
+      'https://cdn.jsdelivr.net/npm/pluggy-connect-sdk@latest/dist/pluggy-connect.min.js',
+      'https://unpkg.com/pluggy-connect-sdk/dist/pluggy-connect.min.js',
+    ];
+    let idx = 0;
+    function tryNext() {
+      if (idx >= urls.length) {
+        reject(new Error('Widget da Pluggy indisponível — verifique sua conexão'));
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = urls[idx++];
+      s.onload  = () => { if (window.PluggyConnect) resolve(); else tryNext(); };
+      s.onerror = () => tryNext();
+      document.head.appendChild(s);
+    }
+    tryNext();
   });
 }
 
