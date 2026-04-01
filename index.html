@@ -5346,6 +5346,19 @@
           // upsert transactions
           const txRows = TXS.map(t => ({ uid: _currentUid, local_id: t.id, data: t }));
           await sb.from('transactions').upsert(txRows, { onConflict: 'uid,local_id' });
+
+          // delete transactions that were removed from the current in-memory state
+          const existingIds = TXS.map(t => t.id);
+          if (existingIds.length > 0) {
+            await sb.from('transactions')
+              .delete()
+              .eq('uid', _currentUid)
+              .not('local_id', 'in', `(${existingIds.join(',')})`);
+          } else {
+            // no transactions in current user cache -> delete all user tx rows
+            await sb.from('transactions').delete().eq('uid', _currentUid);
+          }
+
           // upsert categories
           const catRows = Object.entries(CATS).map(([name, data]) => ({ uid: _currentUid, name, data }));
           if (catRows.length) await sb.from('categories').upsert(catRows, { onConflict: 'uid,name' });
