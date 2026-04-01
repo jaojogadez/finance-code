@@ -4509,6 +4509,13 @@
               <path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
             </svg>
           </button>
+          <!-- sort order -->
+          <button onclick="toggleMobExtratoOrder()" title="Alternar ordem do extrato"
+            style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card);border:0.5px solid var(--sep-thin);box-shadow:var(--shadow-xs);flex-shrink:0;cursor:pointer;color:var(--label2)">
+            <svg viewBox="0 0 13 13" fill="none" style="width:14px;height:14px">
+              <path d="M3.5 5.5L6.5 2.5L9.5 5.5M3.5 7.5L6.5 10.5L9.5 7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
           <!-- filter -->
           <button id="mob-filter-btn" onclick="openMobFilters()"
             style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:36px;border-radius:10px;font-size:14px;font-weight:600;background:var(--card);border:0.5px solid var(--sep-thin);box-shadow:var(--shadow-xs);cursor:pointer;color:var(--label);font-family:var(--font)">
@@ -5258,6 +5265,8 @@
       // ── STATE ──
       const _now = new Date();
       let curMo = _now.getMonth(), curYear = _now.getFullYear(), isDark = true, sortCol = null, sortDir = 1, cpOpen = false;
+
+      let mobExtratoOrder = true; // true = mais recentes primeiro, false = mais antigos primeiro
 
       let _profileSub = 'Suas finanças pessoais';
       let _avatarColor = 'var(--blue)';
@@ -6250,6 +6259,12 @@
         notif('Todas marcadas como pendentes');
       }
 
+      function toggleMobExtratoOrder() {
+        mobExtratoOrder = !mobExtratoOrder;
+        render();
+        notif(mobExtratoOrder ? 'Mais recentes primeiro' : 'Mais antigos primeiro');
+      }
+
       function clearAllRows() {
         const count = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear)).length;
         if (count === 0) { notif('Nenhuma transação para apagar'); return; }
@@ -6393,7 +6408,7 @@
         const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
           if (a === '—') return 1;
           if (b === '—') return -1;
-          return b.localeCompare(a);
+          return mobExtratoOrder ? b.localeCompare(a) : a.localeCompare(b);
         });
 
         let html = '';
