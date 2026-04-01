@@ -6461,7 +6461,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
         <span class="mob-ext-val" style="color:${valColor}">${valSign}${brl(t.val)}</span>
-        <div class="mob-ext-check" style="${checkBg};width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="event.stopPropagation();toggleOk(${t.id})">${checkIco}</div>
+        <div class="mob-ext-check" data-tx-id="${t.id}" style="${checkBg};width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${checkIco}</div>
       </div>
     </div>`;
           });
@@ -6469,17 +6469,15 @@
 
         el.innerHTML = html;
 
-        // Add "+" button as last row of the list
-        const addRow = document.createElement('div');
-        addRow.style.cssText = 'display:flex;align-items:center;gap:10px;padding:16px 20px;background:var(--card);border-top:0.5px solid var(--sep-thin);cursor:pointer;-webkit-tap-highlight-color:transparent';
-        addRow.innerHTML = `
-    <div style="width:26px;height:26px;border-radius:50%;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="var(--blue)" stroke-width="1.6" stroke-linecap="round"/></svg>
-    </div>
-    <span style="font-size:15px;font-weight:500;color:var(--blue)">Adicionar movimentação</span>
-  `;
-        addRow.addEventListener('click', addInlineRow);
-        el.appendChild(addRow);
+        // Add event listeners for checkboxes after rendering
+        const checkboxes = el.querySelectorAll('.mob-ext-check');
+        checkboxes.forEach((checkbox) => {
+          const txId = parseInt(checkbox.getAttribute('data-tx-id'));
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleOk(txId);
+          });
+        });
       }
 
       function updateMobDistrib(rows) {
