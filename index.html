@@ -9055,23 +9055,24 @@
       const _baseSbSave = sbSave;
       sbLoad = async function () {
         await _baseSbLoad();
-        try {
-          const ibRes = await sb.from('user_meta').select('data').eq('uid', _currentUid).eq('key', 'initial_balances').single();
-          if (ibRes.data?.data) INITIAL_BALANCES = ibRes.data.data;
-        } catch (e) { }
+        if (!_currentUid) return;
+        const { data: ibData, error: ibErr } = await sb.from('user_meta')
+          .select('data').eq('uid', _currentUid).eq('key', 'initial_balances').single();
+        if (ibErr && ibErr.code !== 'PGRST116') console.warn('sbLoad initial_balances error', ibErr);
+        if (ibData?.data) INITIAL_BALANCES = ibData.data;
         await loadPrefs();
         await ofLoadItems();
         await loadBanks();
       };
       sbSave = async function () {
         await _baseSbSave();
-        try {
-          await sb.from('user_meta').upsert(
-            { uid: _currentUid, key: 'initial_balances', data: INITIAL_BALANCES },
-            { onConflict: 'uid,key' }
-          );
-        } catch (e) { }
+        const { error: ibSaveErr } = await sb.from('user_meta').upsert(
+          { uid: _currentUid, key: 'initial_balances', data: INITIAL_BALANCES },
+          { onConflict: 'uid,key' }
+        );
+        if (ibSaveErr) console.warn('sbSave initial_balances error', ibSaveErr);
       };
+
 
       // ══════════════════════════════════════════
       //  BANCOS — persistência no Supabase
