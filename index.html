@@ -6404,6 +6404,11 @@
           groupedByDate[date].push(t);
         });
 
+        // Sort transactions within each date group by ID (for consistent ordering)
+        Object.values(groupedByDate).forEach(dayTxs => {
+          dayTxs.sort((a, b) => a.id - b.id);
+        });
+
         // Sort dates in descending order (most recent first)
         const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
           if (a === '—') return 1;
