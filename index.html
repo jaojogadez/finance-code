@@ -6444,6 +6444,14 @@
 
       function updateMobDistrib(rows) {
         const bankMap = {};
+
+        // include initial balances in mobile bank distribution (same data shown on desktop)
+        Object.entries(INITIAL_BALANCES || {}).forEach(([bank, value]) => {
+          if (!bank || bank === '_inv' || bank === 'Dinheiro') return;
+          if (!bankMap[bank]) bankMap[bank] = 0;
+          bankMap[bank] += value;
+        });
+
         TXS.forEach(t => {
           if (!t.ok || t.type === 'Transferência' || t.bank === 'Dinheiro') return;
           const sign = t.type === 'Entrada' ? 1 : -1;
