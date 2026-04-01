@@ -8558,10 +8558,6 @@
       function closeInitialBalModal() {
         document.getElementById('init-bal-bg').classList.remove('on');
       }
-      document.getElementById('init-bal-bg').addEventListener('click', e => {
-        if (e.target === document.getElementById('init-bal-bg')) closeInitialBalModal();
-      });
-
       function renderInitialBalBody() {
         const body = document.getElementById('init-bal-body');
         let html = '';
@@ -9132,6 +9128,10 @@
         document.body.classList.add('dark');
         const spLbl = document.getElementById('sp-theme-lbl');
         if (spLbl) spLbl.textContent = 'Modo Claro';
+
+        document.getElementById('init-bal-bg')?.addEventListener('click', e => {
+          if (e.target === document.getElementById('init-bal-bg')) closeInitialBalModal();
+        });
       });
 
       window.addEventListener('resize', () => { render(); });
