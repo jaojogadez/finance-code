@@ -8841,9 +8841,6 @@
       function closeOFModal() {
         document.getElementById('of-modal-bg').classList.remove('on');
       }
-      document.getElementById('of-modal-bg').addEventListener('click', e => {
-        if (e.target === document.getElementById('of-modal-bg')) closeOFModal();
-      });
 
       // ── Mensagem de status ──
       function ofStatus(msg, color) {
@@ -9131,6 +9128,10 @@
 
         document.getElementById('init-bal-bg')?.addEventListener('click', e => {
           if (e.target === document.getElementById('init-bal-bg')) closeInitialBalModal();
+        });
+
+        document.getElementById('of-modal-bg')?.addEventListener('click', e => {
+          if (e.target === document.getElementById('of-modal-bg')) closeOFModal();
         });
       });
 
