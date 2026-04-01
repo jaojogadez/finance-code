@@ -6493,7 +6493,19 @@
         });
 
         TXS.forEach(t => {
-          if (!t.ok || t.type === 'Transferência' || t.bank === 'Dinheiro') return;
+          if (!t.ok) return;
+          if (t.type === 'Transferência') {
+            // Handle bank-to-bank transfers
+            if (t.recipient && t.recipient !== t.bank && t.recipient !== 'Dinheiro' && t.bank !== 'Dinheiro') {
+              // Transfer between two banks: subtract from source, add to destination
+              if (!bankMap[t.bank]) bankMap[t.bank] = 0;
+              bankMap[t.bank] -= t.val;
+              if (!bankMap[t.recipient]) bankMap[t.recipient] = 0;
+              bankMap[t.recipient] += t.val;
+            }
+            return;
+          }
+          if (t.bank === 'Dinheiro') return;
           const sign = t.type === 'Entrada' ? 1 : -1;
           if (!bankMap[t.bank]) bankMap[t.bank] = 0;
           bankMap[t.bank] += sign * t.val;
@@ -6666,10 +6678,16 @@
       </span>
     </div>
 
-    <div class="tx-detail-row">
+    <div class="tx-detail-row" ${t.type === 'Transferência' ? `onclick="txdPickRecipient(${id})" style="cursor:pointer;-webkit-tap-highlight-color:transparent"` : ''}>
       <span class="tx-detail-lbl">${t.cat === 'Resgate de Investimentos' ? 'Para (Conta)' : 'Destinatário'}</span>
+      ${t.type === 'Transferência' ? `
+      <span class="txd-tap-val">
+        ${t.recipient ? (BANKS[t.recipient] ? BANKS[t.recipient].logo : '') : ''}
+        <span style="font-size:13px;font-weight:600;color:var(--label)">${esc(t.recipient || '—')}</span>
+        <svg width="7" height="12" viewBox="0 0 7 12" fill="none" style="color:var(--label4)"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>` : `
       <input class="txd-input" value="${esc(t.recipient || '')}" placeholder="—"
-        onblur="txdSave(${id},'recipient',this.value)">
+        onblur="txdSave(${id},'recipient',this.value)">`}
     </div>
 
     <div class="tx-detail-row">
@@ -6712,6 +6730,12 @@
         const opts = Object.keys(BANKS).map(b => ({ v: b, l: b, logo: getBankLogo(b) }));
         const t = TXS.find(x => x.id === id);
         openTxPicker('Banco', opts, t?.bank || '', v => { txdSave(id, 'bank', v); });
+      }
+
+      function txdPickRecipient(id) {
+        const opts = Object.keys(BANKS).map(b => ({ v: b, l: b, logo: getBankLogo(b) }));
+        const t = TXS.find(x => x.id === id);
+        openTxPicker('Destinatário', opts, t?.recipient || '', v => { txdSave(id, 'recipient', v); });
       }
 
       function txdSave(id, field, rawValue) {
@@ -6886,7 +6910,15 @@
           case 'date':
             return `<div class="cell-input-wrap"><input type="date" value="${t.date}" onkeydown="edKeyDown(event)" onblur="commitBlur(this,'date')"></div>`;
           case 'recipient':
-            return `<div class="cell-input-wrap"><input type="text" value="${esc(t.recipient || '')}" onkeydown="edKeyDown(event)" onblur="commitBlur(this,'recipient')"></div>`;
+            if (t.type === 'Transferência') {
+              // Custom dropdown for bank selection in transfers
+              return `<div class="cell-input-wrap" style="cursor:pointer" id="cdiw-${cid}" onclick="openCellDropdown(event,'${cid}',${t.id})">
+        <span style="font-size:13px;color:var(--text);pointer-events:none">${esc(t.recipient || '—')}</span>
+        <svg style="margin-left:auto;flex-shrink:0;pointer-events:none" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>`;
+            } else {
+              return `<div class="cell-input-wrap"><input type="text" value="${esc(t.recipient || '')}" onkeydown="edKeyDown(event)" onblur="commitBlur(this,'recipient')"></div>`;
+            }
           case 'bank':
             return `<div class="cell-input-wrap"><input type="text" value="${esc(t.bank || '')}" onkeydown="edKeyDown(event)" onblur="commitBlur(this,'bank')"></div>`;
           default: return cellHTML(t, cid);
@@ -6969,8 +7001,9 @@
         if (field === 'fv') opts = FV_OPTS;
         if (field === 'type') opts = TYPE_OPTS;
         if (field === 'bank') opts = BANK_OPTS;
+        if (field === 'recipient' && tx.type === 'Transferência') opts = BANK_OPTS;
 
-        const current = field === 'cat' ? tx.cat : field === 'fv' ? tx.fv : field === 'type' ? tx.type : tx.bank;
+        const current = field === 'cat' ? tx.cat : field === 'fv' ? tx.fv : field === 'type' ? tx.type : field === 'recipient' ? tx.recipient : tx.bank;
 
         opts.forEach(opt => {
           const item = document.createElement('div');
@@ -7005,7 +7038,7 @@
             item.appendChild(dot);
             item.appendChild(lbl);
             item.appendChild(pen);
-          } else if (field === 'bank') {
+          } else if (field === 'bank' || (field === 'recipient' && tx.type === 'Transferência')) {
             const logo = getBankLogo(opt) || `<svg width="20" height="20" viewBox="0 0 40 40" style="flex-shrink:0"><rect width="40" height="40" rx="10" fill="#888"/></svg>`;
             item.innerHTML = `${logo}<span style="font-size:13px">${esc(opt)}</span>`;
           } else {
@@ -7152,6 +7185,7 @@
         if (field === 'fv') tx.fv = value;
         if (field === 'type') tx.type = value;
         if (field === 'bank') tx.bank = value;
+        if (field === 'recipient') tx.recipient = value;
         saveHistory('Editar ' + field);
         editCell = null;
         render();
@@ -7339,7 +7373,7 @@
         closeCellDropdown();
         const vis = getVisCols();
         const col = vis[editCell.ci];
-        if (col && ['cat', 'fv', 'type', 'bank', 'status'].includes(col.id)) { closeEditor(); return; }
+        if (col && (['cat', 'fv', 'type', 'bank', 'status'].includes(col.id) || (col.id === 'recipient' && tx.type === 'Transferência'))) { closeEditor(); return; }
         const td = document.querySelector(`#tbody td[data-ri="${editCell.ri}"][data-ci="${editCell.ci}"]`);
         const inp = td?.querySelector('input');
         if (!inp) { closeEditor(); return; }
@@ -7404,7 +7438,24 @@
             }
             return;
           }
-          if (t.type === 'Transferência') { cc -= t.val; inv += t.val; return; }
+          if (t.type === 'Transferência') {
+            // Handle bank-to-bank transfers
+            if (t.recipient && t.recipient !== t.bank && t.recipient !== 'Dinheiro' && t.bank !== 'Dinheiro') {
+              // Transfer between two banks: subtract from source, add to destination
+              if (!bankMap[t.bank]) bankMap[t.bank] = 0;
+              bankMap[t.bank] -= t.val;
+              if (!bankMap[t.recipient]) bankMap[t.recipient] = 0;
+              bankMap[t.recipient] += t.val;
+              cc -= t.val; // Still affects total cc for consistency
+            } else if (t.cat === 'Investimentos') {
+              // Investment transfer: from cc to investments
+              cc -= t.val; inv += t.val;
+            } else {
+              // Other transfers: assume cc to investments
+              cc -= t.val; inv += t.val;
+            }
+            return;
+          }
           const sign = t.type === 'Entrada' ? 1 : -1;
           const isInvest = t.cat === 'Investimentos';
           if (t.bank === 'Dinheiro') {
