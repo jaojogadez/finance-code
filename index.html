@@ -8642,7 +8642,7 @@
         row.querySelector('.init-bank-val').focus();
       }
 
-      function saveInitialBal() {
+      async function saveInitialBal() {
         const invRaw = document.getElementById('init-inv')?.value || '0';
         INITIAL_BALANCES = { _inv: parseBankVal(invRaw) || 0 };
 
@@ -8655,20 +8655,22 @@
         closeInitialBalModal();
         updateWallet();
         scheduleSave();
-        saveInitialBalancesDB();   // <-- adicionar esta linha
-        notif('Saldos iniciais salvos ✓');
+        await saveInitialBalancesDB();
       }
 
       async function saveInitialBalancesDB() {
-        if (!_currentUid) return;
-        try {
-          await sb.from('user_meta').upsert(
-            { uid: _currentUid, key: 'initial_balances', data: INITIAL_BALANCES },
-            { onConflict: 'uid,key' }
-          );
-        } catch (e) { console.warn('saveInitialBalancesDB error', e); }
+        if (!_currentUid) { notif('Erro: usuário não autenticado'); return; }
+        const { error } = await sb.from('user_meta').upsert(
+          { uid: _currentUid, key: 'initial_balances', data: INITIAL_BALANCES },
+          { onConflict: 'uid,key' }
+        );
+        if (error) {
+          console.error('saveInitialBalancesDB error', error);
+          notif('Erro ao salvar saldos: ' + (error.message || JSON.stringify(error)));
+        } else {
+          notif('Saldos iniciais salvos ✓');
+        }
       }
-
 
 
       // ══════════════════════════════════════════
