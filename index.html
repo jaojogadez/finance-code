@@ -119,6 +119,7 @@
     html,
     body {
       height: 100%;
+      width: 100%;
       font-family: var(--font);
       font-size: 14px;
       line-height: 1.45;
@@ -127,6 +128,11 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      /* iOS optimization */
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      position: fixed;
+      overflow: hidden;
     }
 
     /* ═══════════════════════════════
@@ -9389,6 +9395,31 @@
         </div>
       </div>
     </div>
+
+  <!-- Script para ocultar a barra de navegação do Safari no iOS -->
+  <script>
+    // Função para esconder a barra de navegação do Safari
+    function hideAddressBar() {
+      // Scroll para cima para esconder a barra de endereço
+      window.scrollTo(0, 1);
+    }
+
+    // Executa quando a página carrega
+    window.addEventListener('load', function() {
+      // Pequeno delay para garantir que o layout está pronto
+      setTimeout(hideAddressBar, 100);
+    });
+
+    // Também tenta esconder quando orientação muda
+    window.addEventListener('orientationchange', function() {
+      setTimeout(hideAddressBar, 300);
+    });
+
+    // Se o documento está pronto, executa imediatamente
+    if (document.readyState === 'complete') {
+      hideAddressBar();
+    }
+  </script>
 
 </body>
 
