@@ -2957,6 +2957,10 @@
       display: flex
     }
 
+    .mob-only {
+      display: none
+    }
+
     /* mobile search overlay */
     .mob-search-overlay {
       position: fixed;
@@ -3131,6 +3135,10 @@
 
       .desk-only {
         display: none !important
+      }
+
+      .mob-only {
+        display: block !important
       }
 
       .filt-label {
@@ -4703,25 +4711,8 @@
 
         <div class="ws-divider"></div>
 
-        <!-- Por banco -->
-        <div class="ws-section" style="padding-bottom:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div class="ws-title" style="margin-bottom:0">Distribuição por Banco</div>
-            <button class="btn-icon" onclick="openInitialBalModal()" title="Editar saldos iniciais"
-              style="color:var(--label3);width:26px;height:26px">
-              <svg viewBox="0 0 13 13" fill="none" style="width:13px;height:13px">
-                <path d="M9 2l2 2-6 6H3V8L9 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" />
-                <path d="M1 12h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div id="ws-banks"></div>
-
-        <div class="ws-divider"></div>
-
-        <!-- Salário Mensal -->
-        <div class="ws-section">
+        <!-- Salário Mensal (Desktop - primeira posição) -->
+        <div class="ws-section desk-only">
           <div class="ws-title">Salário Mensal</div>
           <div class="ws-health-wrap">
 
@@ -4767,6 +4758,77 @@
                   <span class="ws-health-dot" style="background:var(--blue)"></span>
                   <span class="ws-health-key">Líquido</span>
                   <span class="ws-health-num" id="ws-health-bal">R$ 0</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Por banco -->
+        <div class="ws-section" style="padding-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="ws-title" style="margin-bottom:0">Distribuição por Banco</div>
+            <button class="btn-icon" onclick="openInitialBalModal()" title="Editar saldos iniciais"
+              style="color:var(--label3);width:26px;height:26px">
+              <svg viewBox="0 0 13 13" fill="none" style="width:13px;height:13px">
+                <path d="M9 2l2 2-6 6H3V8L9 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" />
+                <path d="M1 12h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="ws-banks"></div>
+
+        <div class="ws-divider"></div>
+
+        <!-- Salário Mensal (Mobile - segunda posição) -->
+        <div class="ws-section mob-only">
+          <div class="ws-title">Salário Mensal</div>
+          <div class="ws-health-wrap">
+
+            <!-- Big ring -->
+            <div class="ws-health-ring-wrap">
+              <svg class="ws-health-svg" viewBox="0 0 140 140">
+                <circle class="ws-health-bg" cx="70" cy="70" r="54" />
+                <circle class="ws-health-track" cx="70" cy="70" r="54" id="ws-health-arc-mobile" stroke-dasharray="0 339.3"
+                  stroke-dashoffset="0" />
+              </svg>
+              <div class="ws-health-center">
+                <div class="ws-health-value" id="ws-health-value-mobile">R$ 0</div>
+                <div class="ws-health-sub" id="ws-health-sub-pct-mobile">0% gasto</div>
+              </div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="ws-health-info">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div class="ws-health-status" id="ws-health-status-mobile">—</div>
+                <button onclick="toggleHealthDetails()" class="ws-health-hide-btn" id="ws-health-hide-btn-mobile"
+                  title="Ocultar detalhes">
+                  <svg id="ws-health-eye-ico-mobile" width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M1 6.5C2 4 4 2.5 6.5 2.5S11 4 12 6.5C11 9 9 10.5 6.5 10.5S2 9 1 6.5Z" stroke="currentColor"
+                      stroke-width="1.2" />
+                    <circle cx="6.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.2" />
+                  </svg>
+                </button>
+              </div>
+              <div class="ws-health-rows" id="ws-health-rows-mobile">
+                <div class="ws-health-row">
+                  <span class="ws-health-dot" style="background:var(--green)"></span>
+                  <span class="ws-health-key">Bruto</span>
+                  <span class="ws-health-num" id="ws-health-in-mobile">R$ 0</span>
+                </div>
+                <div class="ws-health-row">
+                  <span class="ws-health-dot" style="background:var(--red)"></span>
+                  <span class="ws-health-key">Descontos</span>
+                  <span class="ws-health-num" id="ws-health-out-mobile">R$ 0</span>
+                </div>
+                <div class="ws-health-row"
+                  style="border-top:0.5px solid var(--sep-thin);margin-top:4px;padding-top:6px">
+                  <span class="ws-health-dot" style="background:var(--blue)"></span>
+                  <span class="ws-health-key">Líquido</span>
+                  <span class="ws-health-num" id="ws-health-bal-mobile">R$ 0</span>
                 </div>
               </div>
             </div>
@@ -7985,41 +8047,71 @@
           statusLabel = 'Crítico'; statusBg = 'rgba(255,59,48,.2)'; statusColor = 'var(--red)';
         }
 
-        const arc = document.getElementById('ws-health-arc');
-        const valueEl = document.getElementById('ws-health-value');
-        const pctSubEl = document.getElementById('ws-health-sub-pct');
-        const statEl = document.getElementById('ws-health-status');
-        const inEl = document.getElementById('ws-health-in');
-        const outEl = document.getElementById('ws-health-out');
-        const balEl = document.getElementById('ws-health-bal');
+        // Update both desktop and mobile elements
+        const elements = [
+          // Desktop elements
+          {
+            arc: document.getElementById('ws-health-arc'),
+            valueEl: document.getElementById('ws-health-value'),
+            pctSubEl: document.getElementById('ws-health-sub-pct'),
+            statEl: document.getElementById('ws-health-status'),
+            inEl: document.getElementById('ws-health-in'),
+            outEl: document.getElementById('ws-health-out'),
+            balEl: document.getElementById('ws-health-bal')
+          },
+          // Mobile elements
+          {
+            arc: document.getElementById('ws-health-arc-mobile'),
+            valueEl: document.getElementById('ws-health-value-mobile'),
+            pctSubEl: document.getElementById('ws-health-sub-pct-mobile'),
+            statEl: document.getElementById('ws-health-status-mobile'),
+            inEl: document.getElementById('ws-health-in-mobile'),
+            outEl: document.getElementById('ws-health-out-mobile'),
+            balEl: document.getElementById('ws-health-bal-mobile')
+          }
+        ];
 
-        if (arc) { arc.setAttribute('stroke-dasharray', `${arcLen} ${CIRC}`); arc.style.stroke = color; }
-        if (valueEl) { valueEl.textContent = brl(liquido); valueEl.style.color = color; }
-        if (pctSubEl) { pctSubEl.textContent = pctRemaining + '%'; pctSubEl.style.color = color; }
-        if (statEl) {
-          statEl.innerHTML = `${statusIcon} ${statusLabel}`;
-          statEl.style.background = statusBg;
-          statEl.style.color = statusColor;
-          statEl.style.whiteSpace = 'nowrap';
-        }
-        if (inEl) inEl.textContent = brl(bruto);
-        if (outEl) outEl.textContent = brl(descontoTrabalhador);
-        if (balEl) {
-          balEl.textContent = brl(liquido);
-          balEl.style.color = liquido >= 0 ? 'var(--green)' : 'var(--red)';
-        }
+        elements.forEach(el => {
+          if (el.arc) { el.arc.setAttribute('stroke-dasharray', `${arcLen} ${CIRC}`); el.arc.style.stroke = color; }
+          if (el.valueEl) { el.valueEl.textContent = brl(liquido); el.valueEl.style.color = color; }
+          if (el.pctSubEl) { el.pctSubEl.textContent = pctRemaining + '%'; el.pctSubEl.style.color = color; }
+          if (el.statEl) {
+            el.statEl.innerHTML = `${statusIcon} ${statusLabel}`;
+            el.statEl.style.background = statusBg;
+            el.statEl.style.color = statusColor;
+            el.statEl.style.whiteSpace = 'nowrap';
+          }
+          if (el.inEl) el.inEl.textContent = brl(bruto);
+          if (el.outEl) el.outEl.textContent = brl(descontoTrabalhador);
+          if (el.balEl) {
+            el.balEl.textContent = brl(liquido);
+            el.balEl.style.color = liquido >= 0 ? 'var(--green)' : 'var(--red)';
+          }
+        });
       }
 
       let healthDetailsVisible = true;
       function toggleHealthDetails() {
         healthDetailsVisible = !healthDetailsVisible;
-        const rows = document.getElementById('ws-health-rows');
-        const ico = document.getElementById('ws-health-eye-ico');
-        if (rows) rows.style.display = healthDetailsVisible ? 'flex' : 'none';
-        // swap eye icon: open eye = visible, crossed = hidden
-        if (ico) ico.innerHTML = healthDetailsVisible
-          ? `<path d="M1 6.5C2 4 4 2.5 6.5 2.5S11 4 12 6.5C11 9 9 10.5 6.5 10.5S2 9 1 6.5Z" stroke="currentColor" stroke-width="1.2"/><circle cx="6.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.2"/>`
-          : `<path d="M1 1l11 11M4.5 3A5.5 5.5 0 0 1 6.5 2.5c2.5 0 4.5 1.5 5.5 4a6 6 0 0 1-1.5 2.3M8.5 9.5A5 5 0 0 1 6.5 10.5C4 10.5 2 9 1 6.5a6 6 0 0 1 1.8-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>`;
+        const elements = [
+          // Desktop elements
+          {
+            rows: document.getElementById('ws-health-rows'),
+            ico: document.getElementById('ws-health-eye-ico')
+          },
+          // Mobile elements
+          {
+            rows: document.getElementById('ws-health-rows-mobile'),
+            ico: document.getElementById('ws-health-eye-ico-mobile')
+          }
+        ];
+
+        elements.forEach(el => {
+          if (el.rows) el.rows.style.display = healthDetailsVisible ? 'flex' : 'none';
+          if (el.ico) el.ico.innerHTML = healthDetailsVisible
+            ? `<path d="M1 6.5C2 4 4 2.5 6.5 2.5S11 4 12 6.5C11 9 9 10.5 6.5 10.5S2 9 1 6.5Z" stroke="currentColor" stroke-width="1.2"/><circle cx="6.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.2"/>`
+            : `<path d="M1 1l11 11M4.5 3A5.5 5.5 0 0 1 6.5 2.5c2.5 0 4.5 1.5 5.5 4a6 6 0 0 1-1.5 2.3M8.5 9.5A5 5 0 0 1 6.5 10.5C4 10.5 2 9 1 6.5a6 6 0 0 1 1.8-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>`;
+        });
       }
 
       // ══════════════════════════════════════════
