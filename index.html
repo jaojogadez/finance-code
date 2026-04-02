@@ -7278,8 +7278,8 @@
         const col = vis[ci];
 
         if (col?.id === 'status') {
-          const rows = getRows();
-          toggleOk(rows[ri]?.id);
+          const td = e.target.closest('td');
+          toggleOk(td ? +td.dataset.id : getRows()[ri]?.id);
           selCell = { ri, ci }; editCell = null;
           renderSelectionOnly(); return;
         }
@@ -7293,7 +7293,7 @@
         const vis = getVisCols();
         const col = vis[ci];
         if (!col) return;
-        if (col.id === 'status') { const rows = getRows(); toggleOk(rows[ri]?.id); return; }
+        if (col.id === 'status') { const td = e.target.closest('td'); toggleOk(td ? +td.dataset.id : getRows()[ri]?.id); return; }
         openEditor(ri, ci);
       }
 
@@ -9396,30 +9396,30 @@
       </div>
     </div>
 
-  <!-- Script para ocultar a barra de navegação do Safari no iOS -->
-  <script>
-    // Função para esconder a barra de navegação do Safari
-    function hideAddressBar() {
-      // Scroll para cima para esconder a barra de endereço
-      window.scrollTo(0, 1);
-    }
+    <!-- Script para ocultar a barra de navegação do Safari no iOS -->
+    <script>
+      // Função para esconder a barra de navegação do Safari
+      function hideAddressBar() {
+        // Scroll para cima para esconder a barra de endereço
+        window.scrollTo(0, 1);
+      }
 
-    // Executa quando a página carrega
-    window.addEventListener('load', function() {
-      // Pequeno delay para garantir que o layout está pronto
-      setTimeout(hideAddressBar, 100);
-    });
+      // Executa quando a página carrega
+      window.addEventListener('load', function () {
+        // Pequeno delay para garantir que o layout está pronto
+        setTimeout(hideAddressBar, 100);
+      });
 
-    // Também tenta esconder quando orientação muda
-    window.addEventListener('orientationchange', function() {
-      setTimeout(hideAddressBar, 300);
-    });
+      // Também tenta esconder quando orientação muda
+      window.addEventListener('orientationchange', function () {
+        setTimeout(hideAddressBar, 300);
+      });
 
-    // Se o documento está pronto, executa imediatamente
-    if (document.readyState === 'complete') {
-      hideAddressBar();
-    }
-  </script>
+      // Se o documento está pronto, executa imediatamente
+      if (document.readyState === 'complete') {
+        hideAddressBar();
+      }
+    </script>
 
 </body>
 
