@@ -8630,19 +8630,10 @@
           return;
         }
 
-        // Desktop: first render row list, then select the new row in sorted order
+        // Desktop: always select the new row as the last row in the table
         render();
-        let rows = getRows();
-        if (sortCol) {
-          rows = [...rows].sort((a, b) => {
-            let av = a[sortCol], bv = b[sortCol];
-            if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
-            return av < bv ? -sortDir : av > bv ? sortDir : 0;
-          });
-        }
-
-        const ri = rows.findIndex(r => r.id === newTx.id);
-        if (ri === -1) return;
+        const rows = getRows();
+        const ri = rows.length - 1; // Always select the last row
 
         selCell = { ri, ci: 1 };
         editCell = { ri, ci: 1 };
