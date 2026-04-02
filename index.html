@@ -4330,17 +4330,17 @@
         <!-- Row 2: Entradas + Saídas + Saldo do Mês -->
         <div class="mob-hero-row" style="align-items:stretch">
           <div class="mob-hero-sub-item">
-            <div class="mob-hero-sub-label" style="color:rgba(255,255,255,.65)">↑ Entradas</div>
+            <div class="mob-hero-sub-label">↑ Entradas</div>
             <div class="mob-hero-sub-val pos" id="mob-hero-in">R$ 0,00</div>
           </div>
           <div class="mob-hero-sub-divider"></div>
           <div class="mob-hero-sub-item">
-            <div class="mob-hero-sub-label" style="color:rgba(255,255,255,.65)">↓ Saídas</div>
+            <div class="mob-hero-sub-label">↓ Saídas</div>
             <div class="mob-hero-sub-val" style="color:var(--red)" id="mob-hero-out">R$ 0,00</div>
           </div>
           <div class="mob-hero-sub-divider"></div>
           <div class="mob-hero-sub-item">
-            <div class="mob-hero-sub-label" style="color:rgba(255,255,255,.65)">Saldo</div>
+            <div class="mob-hero-sub-label">Saldo</div>
             <div id="mob-hero-bal"
               style="font-size:14px;font-weight:700;font-family:var(--mono);letter-spacing:-.3px;color:#fff;margin-top:3px">
               R$ 0,00</div>
@@ -4709,8 +4709,6 @@
           </div>
         </div>
 
-        <div class="ws-divider"></div>
-
         <!-- Salário Mensal (Desktop - primeira posição) -->
         <div class="ws-section desk-only" style="display: flex; flex-direction: column; gap: 12px;">
           <div class="ws-title">Salário Mensal</div>
@@ -4818,8 +4816,6 @@
 
           </div>
         </div>
-
-        <div class="ws-divider"></div>
 
         <!-- Por banco -->
         <div class="ws-section" style="padding-bottom:8px">
@@ -5635,6 +5631,11 @@
         document.getElementById('auth-wrap').style.display = 'none';
         document.getElementById('shell').classList.add('on');
         initMonths(); initCatFilter(); render();
+        if (window.innerWidth > 768) {
+          switchPatView('donut');
+        } else {
+          switchPatView('card');
+        }
         document.getElementById('m-date').value = new Date().toISOString().split('T')[0];
       }
 
