@@ -7916,12 +7916,21 @@
         let descontoTrabalhador = 0;
         let totalSaidas = 0;
 
+        // Determine the salary cutoff date (first salary recibo in month)
+        const salaryTxs = monthTxs.filter(t => t.type === 'Entrada' && (t.cat === 'Salário' || /salário|salary|holerite|folha/i.test(t.desc || '')));
+        const salaryDate = salaryTxs.length
+          ? salaryTxs.map(t => t.date).filter(Boolean).sort()[0]
+          : null;
+
         monthTxs.forEach(t => {
           if (t.type === 'Entrada') {
             bruto += t.val;
           }
           if (t.type === 'Saída') {
-            totalSaidas += t.val;
+            // Exclui saídas anteriores à data do salário no cálculo de percentual
+            if (!salaryDate || t.date >= salaryDate) {
+              totalSaidas += t.val;
+            }
             if ((t.desc || '').toLowerCase().includes('desconto de trabalhador')) {
               descontoTrabalhador += t.val;
             }
