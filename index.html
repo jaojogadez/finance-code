@@ -4712,18 +4712,18 @@
               <div class="ws-health-rows" id="ws-health-rows">
                 <div class="ws-health-row">
                   <span class="ws-health-dot" style="background:var(--green)"></span>
-                  <span class="ws-health-key">Renda</span>
+                  <span class="ws-health-key">Bruto</span>
                   <span class="ws-health-num" id="ws-health-in">R$ 0</span>
                 </div>
                 <div class="ws-health-row">
                   <span class="ws-health-dot" style="background:var(--red)"></span>
-                  <span class="ws-health-key">Gastos</span>
+                  <span class="ws-health-key">Descontos</span>
                   <span class="ws-health-num" id="ws-health-out">R$ 0</span>
                 </div>
                 <div class="ws-health-row"
                   style="border-top:0.5px solid var(--sep-thin);margin-top:4px;padding-top:6px">
                   <span class="ws-health-dot" style="background:var(--blue)"></span>
-                  <span class="ws-health-key">Saldo</span>
+                  <span class="ws-health-key">Líquido</span>
                   <span class="ws-health-num" id="ws-health-bal">R$ 0</span>
                 </div>
               </div>
@@ -7914,14 +7914,20 @@
       function updateHealthRing() {
         // Use only current month's PAID transactions
         const monthTxs = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear) && t.ok);
-        let income = 0, expenses = 0;
+        let bruto = 0;
+        let descontoTrabalhador = 0;
+
         monthTxs.forEach(t => {
-          if (t.type === 'Entrada') income += t.val;
-          else if (t.type === 'Saída') expenses += t.val;
+          if (t.type === 'Entrada') {
+            bruto += t.val;
+          }
+          if (t.type === 'Saída' && (t.desc || '').toLowerCase().includes('desconto de trabalhador')) {
+            descontoTrabalhador += t.val;
+          }
         });
 
-        const balance = income - expenses;
-        const pctRemaining = income > 0 ? Math.max(0, Math.min(100, Math.round(balance / income * 100))) : 0;
+        const liquido = bruto - descontoTrabalhador;
+        const pctRemaining = bruto > 0 ? Math.max(0, Math.min(100, Math.round(liquido / bruto * 100))) : 0;
         const CIRC = 339.3; // 2π×54
         const arcLen = CIRC * pctRemaining / 100;
 
@@ -7950,18 +7956,19 @@
         const balEl = document.getElementById('ws-health-bal');
 
         if (arc) { arc.setAttribute('stroke-dasharray', `${arcLen} ${CIRC}`); arc.style.stroke = color; }
-        if (valueEl) { valueEl.textContent = brl(balance); valueEl.style.color = color; }
+        if (valueEl) { valueEl.textContent = brl(liquido); valueEl.style.color = color; }
         if (pctSubEl) { pctSubEl.textContent = pctRemaining + '%'; pctSubEl.style.color = color; }
         if (statEl) {
           statEl.innerHTML = `${statusIcon} ${statusLabel}`;
           statEl.style.background = statusBg;
           statEl.style.color = statusColor;
+          statEl.style.whiteSpace = 'nowrap';
         }
-        if (inEl) inEl.textContent = brl(income);
-        if (outEl) outEl.textContent = brl(expenses);
+        if (inEl) inEl.textContent = brl(bruto);
+        if (outEl) outEl.textContent = brl(descontoTrabalhador);
         if (balEl) {
-          balEl.textContent = brl(balance);
-          balEl.style.color = balance >= 0 ? 'var(--green)' : 'var(--red)';
+          balEl.textContent = brl(liquido);
+          balEl.style.color = liquido >= 0 ? 'var(--green)' : 'var(--red)';
         }
       }
 
