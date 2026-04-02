@@ -1728,11 +1728,13 @@
       background: var(--card);
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      max-width: 90vw;
+      max-width: 420px;
       max-height: 90vh;
       overflow: hidden;
       transform: scale(0.9);
       transition: transform 0.3s;
+      display: flex;
+      flex-direction: column;
     }
 
     .modal-overlay.show .modal-content {
@@ -1768,6 +1770,7 @@
       justify-content: center;
       border-radius: 50%;
       transition: background 0.15s;
+      flex-shrink: 0;
     }
 
     .modal-close:hover {
@@ -1775,19 +1778,76 @@
       color: var(--label);
     }
 
+    /* Debt progress bar */
+    .debt-progress-section {
+      padding: 16px 24px;
+      background: linear-gradient(135deg, rgba(0, 122, 255, 0.05), rgba(52, 199, 89, 0.05));
+      border-bottom: 0.5px solid var(--sep-thin);
+    }
+
+    .debt-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .debt-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      border-radius: 3px;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Form sections */
+    .form-section {
+      margin-bottom: 20px;
+    }
+
+    .form-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-section-title {
+      margin: 0 0 12px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--label3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .modal-body {
       padding: 20px 24px;
-      max-height: 60vh;
+      max-height: calc(90vh - 200px);
       overflow-y: auto;
+      flex: 1;
     }
 
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
     }
 
     .form-group label {
       display: block;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--label);
       margin-bottom: 6px;
@@ -1802,29 +1862,88 @@
       border-radius: 8px;
       background: var(--bg);
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 13px;
       color: var(--label);
       outline: none;
-      transition: border-color 0.15s;
+      transition: all 0.2s;
     }
 
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
       border-color: var(--blue);
+      background: var(--card);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
     }
 
     .form-group textarea {
       resize: vertical;
-      min-height: 60px;
+      min-height: 70px;
+      font-family: var(--font);
     }
 
     .modal-footer {
       display: flex;
-      justify-content: flex-end;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
       padding: 16px 24px 20px;
       border-top: 0.5px solid var(--sep-thin);
+      background: var(--bg2);
+      flex-shrink: 0;
+    }
+
+    .modal-button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+      font-family: var(--font);
+      white-space: nowrap;
+    }
+
+    .modal-button.btn-cancel {
+      background: transparent;
+      color: var(--label-secondary);
+      border: 0.5px solid var(--sep-mid);
+    }
+
+    .modal-button.btn-cancel:hover {
+      background: var(--sep-thin);
+      color: var(--label);
+    }
+
+    .modal-button.btn-delete {
+      background: rgba(255, 59, 48, 0.1);
+      color: var(--red);
+      border: 0.5px solid rgba(255, 59, 48, 0.3);
+    }
+
+    .modal-button.btn-delete:hover {
+      background: rgba(255, 59, 48, 0.15);
+      border-color: rgba(255, 59, 48, 0.5);
+    }
+
+    .modal-button.btn-save {
+      background: var(--blue);
+      color: white;
+      border: none;
+    }
+
+    .modal-button.btn-save:hover {
+      background: #0051D5;
+      filter: brightness(1.1);
+    }
+
+    .modal-button.btn-save:active {
+      transform: scale(0.98);
     }
 
     .btn {
@@ -8759,58 +8878,107 @@
       function openDebtModal(debtId = null) {
         currentDebtId = debtId;
         const debt = debtId ? DEBTS.find(d => d.id === debtId) : blankDebt();
+        const remaining = debt.amount - debt.paid;
+        const pct = debt.amount > 0 ? Math.round((debt.paid / debt.amount) * 100) : 0;
 
         const modal = document.createElement('div');
         modal.id = 'debt-modal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-          <div class="modal-content" style="max-width: 400px;">
+          <div class="modal-content">
             <div class="modal-header">
-              <h3>${debtId ? 'Editar Dívida' : 'Nova Dívida'}</h3>
-              <button class="modal-close" onclick="closeDebtModal()">×</button>
+              <div style="display:flex;align-items:center;gap:12px;flex:1">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/>
+                  <path d="M12 6v6M9 12h6"/>
+                </svg>
+                <div>
+                  <h3 style="margin:0;font-size:18px;font-weight:700;color:var(--label)">${debtId ? 'Editar Dívida' : 'Nova Dívida'}</h3>
+                  ${debtId ? `<p style="margin:4px 0 0;font-size:12px;color:var(--label3)">${debt.name || 'Dívida sem nome'}</p>` : ''}
+                </div>
+              </div>
+              <button class="modal-close" onclick="closeDebtModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
+
+            ${debtId ? `
+              <div class="debt-progress-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span style="font-size:13px;font-weight:600;color:var(--label)">Progresso de pagamento</span>
+                  <span style="font-size:13px;font-weight:700;color:var(--blue)">${pct}%</span>
+                </div>
+                <div class="debt-progress-bar">
+                  <div class="debt-progress-fill" style="width:${pct}%"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--label3)">
+                  <span>Pago: <strong style="color:var(--green)">${brl(debt.paid)}</strong></span>
+                  <span>Restante: <strong style="color:var(--red)">${brl(remaining)}</strong></span>
+                </div>
+              </div>
+            ` : ''}
+
             <div class="modal-body">
-              <div class="form-group">
-                <label>Nome da dívida</label>
-                <input type="text" id="debt-name" value="${esc(debt.name || '')}" placeholder="Ex: Cartão de crédito">
+              <div class="form-section">
+                <h4 class="form-section-title">Informações da dívida</h4>
+                <div class="form-group">
+                  <label>Nome</label>
+                  <input type="text" id="debt-name" value="${esc(debt.name || '')}" placeholder="Ex: Cartão de crédito, Empréstimo...">
+                </div>
+                <div class="form-group">
+                  <label>Credor</label>
+                  <input type="text" id="debt-creditor" value="${esc(debt.creditor || '')}" placeholder="Ex: Nubank, Bradesco...">
+                </div>
               </div>
-              <div class="form-group">
-                <label>Credor</label>
-                <input type="text" id="debt-creditor" value="${esc(debt.creditor || '')}" placeholder="Ex: Nubank">
+
+              <div class="form-section">
+                <h4 class="form-section-title">Valores</h4>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Valor total</label>
+                    <input type="number" id="debt-amount" value="${debt.amount || 0}" step="0.01" min="0" placeholder="0,00">
+                  </div>
+                  <div class="form-group">
+                    <label>Já pago</label>
+                    <input type="number" id="debt-paid" value="${debt.paid || 0}" step="0.01" min="0" placeholder="0,00">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Juros (% ao mês)</label>
+                  <input type="number" id="debt-interest" value="${debt.interest || 0}" step="0.01" min="0" placeholder="0,00">
+                </div>
               </div>
-              <div class="form-group">
-                <label>Valor total</label>
-                <input type="number" id="debt-amount" value="${debt.amount || 0}" step="0.01" min="0">
-              </div>
-              <div class="form-group">
-                <label>Valor já pago</label>
-                <input type="number" id="debt-paid" value="${debt.paid || 0}" step="0.01" min="0">
-              </div>
-              <div class="form-group">
-                <label>Juros (% ao mês)</label>
-                <input type="number" id="debt-interest" value="${debt.interest || 0}" step="0.01" min="0">
-              </div>
-              <div class="form-group">
-                <label>Data de vencimento</label>
-                <input type="date" id="debt-due-date" value="${debt.dueDate || ''}">
-              </div>
-              <div class="form-group">
-                <label>Status</label>
-                <select id="debt-status">
-                  <option value="Ativa" ${debt.status === 'Ativa' ? 'selected' : ''}>Ativa</option>
-                  <option value="Paga" ${debt.status === 'Paga' ? 'selected' : ''}>Paga</option>
-                  <option value="Cancelada" ${debt.status === 'Cancelada' ? 'selected' : ''}>Cancelada</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Descrição</label>
-                <textarea id="debt-description" rows="3" placeholder="Detalhes da dívida">${esc(debt.description || '')}</textarea>
+
+              <div class="form-section">
+                <h4 class="form-section-title">Detalhes</h4>
+                <div class="form-group">
+                  <label>Data de vencimento</label>
+                  <input type="date" id="debt-due-date" value="${debt.dueDate || ''}">
+                </div>
+                <div class="form-group">
+                  <label>Status</label>
+                  <select id="debt-status" style="background-image:url('data:image/svg+xml;utf-8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path fill=%22%23666%22 d=%22M1 1l5 5 5-5%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;appearance:none;padding-right:28px">
+                    <option value="Ativa" ${debt.status === 'Ativa' ? 'selected' : ''}>🔴 Ativa</option>
+                    <option value="Paga" ${debt.status === 'Paga' ? 'selected' : ''}>✅ Paga</option>
+                    <option value="Cancelada" ${debt.status === 'Cancelada' ? 'selected' : ''}>⊘ Cancelada</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Descrição</label>
+                  <textarea id="debt-description" placeholder="Adicione notas sobre esta dívida...">${esc(debt.description || '')}</textarea>
+                </div>
               </div>
             </div>
+
             <div class="modal-footer">
-              ${debtId ? '<button class="btn btn-danger" onclick="deleteCurrentDebt()">Excluir</button>' : ''}
-              <button class="btn" onclick="closeDebtModal()">Cancelar</button>
-              <button class="btn btn-p" onclick="saveDebt()">Salvar</button>
+              ${debtId ? '<button class="modal-button btn-delete" onclick="deleteCurrentDebt()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h16z"/></svg>Excluir</button>' : '<div></div>'}
+              <div style="display:flex;gap:8px">
+                <button class="modal-button btn-cancel" onclick="closeDebtModal()">Cancelar</button>
+                <button class="modal-button btn-save" onclick="saveDebt()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Salvar</button>
+              </div>
             </div>
           </div>
         `;
