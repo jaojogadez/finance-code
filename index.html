@@ -4765,6 +4765,62 @@
           </div>
         </div>
 
+        <!-- Salário Mensal (Mobile - movida para cima) -->
+        <div class="ws-section mob-only">
+          <div class="ws-title">Salário Mensal</div>
+          <div class="ws-health-wrap">
+
+            <!-- Big ring -->
+            <div class="ws-health-ring-wrap">
+              <svg class="ws-health-svg" viewBox="0 0 140 140">
+                <circle class="ws-health-bg" cx="70" cy="70" r="54" />
+                <circle class="ws-health-track" cx="70" cy="70" r="54" id="ws-health-arc-mobile" stroke-dasharray="0 339.3"
+                  stroke-dashoffset="0" />
+              </svg>
+              <div class="ws-health-center">
+                <div class="ws-health-value" id="ws-health-value-mobile">R$ 0</div>
+                <div class="ws-health-sub" id="ws-health-sub-pct-mobile">0% gasto</div>
+              </div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="ws-health-info">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div class="ws-health-status" id="ws-health-status-mobile">—</div>
+                <button onclick="toggleHealthDetails()" class="ws-health-hide-btn" id="ws-health-hide-btn-mobile"
+                  title="Ocultar detalhes">
+                  <svg id="ws-health-eye-ico-mobile" width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M1 6.5C2 4 4 2.5 6.5 2.5S11 4 12 6.5C11 9 9 10.5 6.5 10.5S2 9 1 6.5Z" stroke="currentColor"
+                      stroke-width="1.2" />
+                    <circle cx="6.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.2" />
+                  </svg>
+                </button>
+              </div>
+              <div class="ws-health-rows" id="ws-health-rows-mobile">
+                <div class="ws-health-row">
+                  <span class="ws-health-dot" style="background:var(--green)"></span>
+                  <span class="ws-health-key">Bruto</span>
+                  <span class="ws-health-num" id="ws-health-in-mobile">R$ 0</span>
+                </div>
+                <div class="ws-health-row">
+                  <span class="ws-health-dot" style="background:var(--red)"></span>
+                  <span class="ws-health-key">Descontos</span>
+                  <span class="ws-health-num" id="ws-health-out-mobile">R$ 0</span>
+                </div>
+                <div class="ws-health-row"
+                  style="border-top:0.5px solid var(--sep-thin);margin-top:4px;padding-top:6px">
+                  <span class="ws-health-dot" style="background:var(--blue)"></span>
+                  <span class="ws-health-key">Líquido</span>
+                  <span class="ws-health-num" id="ws-health-bal-mobile">R$ 0</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="ws-divider"></div>
+
         <!-- Por banco -->
         <div class="ws-section" style="padding-bottom:8px">
           <div style="display:flex;align-items:center;justify-content:space-between">
@@ -4781,8 +4837,6 @@
         <div id="ws-banks"></div>
 
         <div class="ws-divider"></div>
-
-        <!-- Salário Mensal (Mobile - segunda posição) -->
         <div class="ws-section mob-only">
           <div class="ws-title">Salário Mensal</div>
           <div class="ws-health-wrap">
