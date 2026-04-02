@@ -10199,12 +10199,45 @@
           else if (t.type === 'Saída') initialBalances[t.bank] -= t.val;
         });
 
-        // Calculate final balances (all transactions with status true)
+        // Final balances: distribuição monetária usando todas as transações pagas (ok=true)
+        const allPaidTxs = TXS.filter(t => t.ok);
         const finalBalances = {};
-        monthTxs.forEach(t => {
-          if (!finalBalances[t.bank]) finalBalances[t.bank] = initialBalances[t.bank] || 0;
-          if (t.type === 'Entrada') finalBalances[t.bank] += t.val;
-          else if (t.type === 'Saída') finalBalances[t.bank] -= t.val;
+
+        // Start from INITIAL_BALANCES base (igual gráfico geral)
+        Object.entries(INITIAL_BALANCES).forEach(([k, v]) => {
+          if (k === '_inv') return;
+          finalBalances[k] = v || 0;
+        });
+
+        allPaidTxs.forEach(t => {
+          if (t.type === 'Transferência') {
+            const sourceBank = t.bank;
+            const destBank = t.recipient || t.bank;
+
+            if (sourceBank && sourceBank !== 'Dinheiro') {
+              if (!finalBalances[sourceBank]) finalBalances[sourceBank] = 0;
+              finalBalances[sourceBank] -= t.val;
+            }
+
+            if (destBank && destBank !== 'Dinheiro' && destBank !== sourceBank) {
+              if (!finalBalances[destBank]) finalBalances[destBank] = 0;
+              finalBalances[destBank] += t.val;
+            }
+
+            return;
+          }
+
+          if (t.bank === 'Dinheiro') return;
+
+          if (!finalBalances[t.bank]) finalBalances[t.bank] = 0;
+
+          const sign = t.type === 'Entrada' ? 1 : -1;
+          if (t.cat === 'Investimentos' && t.type === 'Saída') {
+            // Investimentos saem da conta corrente para ativo, mas não diluir o banco principal no relatório de banco.
+            finalBalances[t.bank] += sign * t.val;
+          } else {
+            finalBalances[t.bank] += sign * t.val;
+          }
         });
 
         // Calculate monthly totals
