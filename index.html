@@ -4512,7 +4512,7 @@
               <div class="mob-topbar-name" id="mob-topbar-name">Usuário</div>
             </div>
           </div>
-          <div class="mob-topbar-right">
+          <div class="mob-topbar-right" style="display:flex;gap:6px;align-items:center">
             <button onclick="openOFModal()"
               style="display:flex;align-items:center;gap:5px;height:34px;padding:0 12px;border-radius:10px;border:none;background:linear-gradient(135deg,#00B4D8,#0077B6);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,180,216,.4);letter-spacing:.01em">
               <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
@@ -4522,6 +4522,17 @@
                   stroke-width="1.2" />
               </svg>
               Conectar
+            </button>
+            <button onclick="exportMonthlyStatement()"
+              style="display:flex;align-items:center;gap:5px;height:34px;padding:0 10px;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4z"/>
+                <polyline points="10,2 10,4 14,4"/>
+                <line x1="8" y1="8" x2="12" y2="8"/>
+                <line x1="8" y1="10" x2="12" y2="10"/>
+                <line x1="8" y1="12" x2="10" y2="12"/>
+              </svg>
+              Exportar
             </button>
           </div>
         </div>
