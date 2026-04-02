@@ -1471,12 +1471,13 @@
       justify-content: center;
     }
 
-    .ws-health-pct {
-      font-size: 18px;
+    .ws-health-value {
+      font-size: 16px;
       font-weight: 800;
       font-family: var(--mono);
       letter-spacing: -.4px;
-      line-height: 1
+      line-height: 1;
+      color: var(--green)
     }
 
     .ws-health-sub {
@@ -1486,6 +1487,15 @@
       text-transform: uppercase;
       letter-spacing: .05em;
       margin-top: 2px
+    }
+
+    #ws-health-sub-pct {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--label2);
+      text-transform: none;
+      letter-spacing: -.2px;
+      margin-top: 1px
     }
 
     .ws-health-info {
@@ -4662,9 +4672,9 @@
 
         <div class="ws-divider"></div>
 
-        <!-- Saúde Financeira do Mês -->
+        <!-- Salário Mensal -->
         <div class="ws-section">
-          <div class="ws-title">Saúde Financeira</div>
+          <div class="ws-title">Salário Mensal</div>
           <div class="ws-health-wrap">
 
             <!-- Big ring -->
@@ -4675,8 +4685,8 @@
                   stroke-dashoffset="0" />
               </svg>
               <div class="ws-health-center">
-                <div class="ws-health-pct" id="ws-health-pct">0%</div>
-                <div class="ws-health-sub">restante</div>
+                <div class="ws-health-value" id="ws-health-value">R$ 0</div>
+                <div class="ws-health-sub" id="ws-health-sub-pct">0% gasto</div>
               </div>
             </div>
 
@@ -7905,19 +7915,20 @@
         });
 
         const balance = income - expenses;
-        const pct = income > 0 ? Math.max(0, Math.min(100, Math.round(balance / income * 100))) : 0;
+        const pctRemaining = income > 0 ? Math.max(0, Math.min(100, Math.round(balance / income * 100))) : 0;
+        const pctSpent = 100 - pctRemaining;
         const CIRC = 339.3; // 2π×54
-        const arcLen = CIRC * pct / 100;
+        const arcLen = CIRC * pctRemaining / 100;
 
-        // color & status based on pct remaining
+        // color & status based on pct spent
         let color, statusLabel, statusBg, statusColor, statusIcon;
-        if (pct >= 60) {
+        if (pctSpent <= 40) {
           color = 'var(--green)'; statusIcon = '😄';
           statusLabel = 'Ótimo'; statusBg = 'rgba(52,199,89,.15)'; statusColor = 'var(--green)';
-        } else if (pct >= 30) {
+        } else if (pctSpent <= 70) {
           color = 'var(--orange)'; statusIcon = '😐';
           statusLabel = 'Médio'; statusBg = 'rgba(255,149,0,.15)'; statusColor = 'var(--orange)';
-        } else if (pct > 0) {
+        } else if (pctSpent < 100) {
           color = 'var(--red)'; statusIcon = '😟';
           statusLabel = 'Ruim'; statusBg = 'rgba(255,59,48,.15)'; statusColor = 'var(--red)';
         } else {
@@ -7926,14 +7937,16 @@
         }
 
         const arc = document.getElementById('ws-health-arc');
-        const pctEl = document.getElementById('ws-health-pct');
+        const valueEl = document.getElementById('ws-health-value');
+        const pctSubEl = document.getElementById('ws-health-sub-pct');
         const statEl = document.getElementById('ws-health-status');
         const inEl = document.getElementById('ws-health-in');
         const outEl = document.getElementById('ws-health-out');
         const balEl = document.getElementById('ws-health-bal');
 
         if (arc) { arc.setAttribute('stroke-dasharray', `${arcLen} ${CIRC}`); arc.style.stroke = color; }
-        if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = color; }
+        if (valueEl) { valueEl.textContent = brl(balance); valueEl.style.color = color; }
+        if (pctSubEl) { pctSubEl.textContent = pctSpent + '% gasto'; pctSubEl.style.color = color; }
         if (statEl) {
           statEl.innerHTML = `${statusIcon} ${statusLabel}`;
           statEl.style.background = statusBg;
