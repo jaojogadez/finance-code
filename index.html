@@ -20,6 +20,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -4546,6 +4548,17 @@
             </svg>
             <input class="sin" id="cf-search" placeholder="Buscar transações..." oninput="render()">
           </div>
+
+          <!-- Export PDF Button -->
+          <button class="btn-icon" onclick="exportMonthlyStatement()" title="Exportar extrato do mês em PDF" style="margin-left:8px">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4z"/>
+              <polyline points="10,2 10,4 14,4"/>
+              <line x1="8" y1="8" x2="12" y2="8"/>
+              <line x1="8" y1="10" x2="12" y2="10"/>
+              <line x1="8" y1="12" x2="10" y2="12"/>
+            </svg>
+          </button>
 
           <!-- Settings -->
           <div class="settings-wrap">
@@ -10150,6 +10163,201 @@
             BANK_OPTS.splice(0, BANK_OPTS.length, ...savedOpts, ...extra);
           }
         } catch (e) { }
+      }
+
+
+      // ══════════════════════════════════════════
+      //  MONTHLY STATEMENT PDF EXPORT
+      // ══════════════════════════════════════════
+      async function exportMonthlyStatement() {
+        // Get current month data
+        const monthTxs = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear) && t.ok);
+
+        if (monthTxs.length === 0) {
+          notif('Não há transações pagas neste mês para exportar');
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const monthName = MONTHS_FULL[curMo];
+        const year = curYear;
+
+        // Calculate salary data
+        const salaryTxs = monthTxs.filter(t => t.type === 'Entrada' && (t.cat === 'Salário' || /salário|salary|holerite|folha/i.test(t.desc || '')));
+        let bruto = 0, descontoTrabalhador = 0;
+        salaryTxs.forEach(t => bruto += t.val);
+        monthTxs.filter(t => t.type === 'Saída' && /desconto de trabalhador/i.test(t.desc || '')).forEach(t => descontoTrabalhador += t.val);
+        const liquido = bruto - descontoTrabalhador;
+
+        // Calculate initial balances (transactions with status false)
+        const initialTxs = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear) && !t.ok);
+        const initialBalances = {};
+        initialTxs.forEach(t => {
+          if (!initialBalances[t.bank]) initialBalances[t.bank] = 0;
+          if (t.type === 'Entrada') initialBalances[t.bank] += t.val;
+          else if (t.type === 'Saída') initialBalances[t.bank] -= t.val;
+        });
+
+        // Calculate final balances (all transactions with status true)
+        const finalBalances = {};
+        monthTxs.forEach(t => {
+          if (!finalBalances[t.bank]) finalBalances[t.bank] = initialBalances[t.bank] || 0;
+          if (t.type === 'Entrada') finalBalances[t.bank] += t.val;
+          else if (t.type === 'Saída') finalBalances[t.bank] -= t.val;
+        });
+
+        // Calculate monthly totals
+        let entradas = 0, saidas = 0;
+        monthTxs.forEach(t => {
+          if (t.type === 'Entrada') entradas += t.val;
+          else if (t.type === 'Saída') saidas += t.val;
+        });
+        const saldoMensal = entradas - saidas;
+
+        // Sort transactions by date
+        const sortedTxs = [...monthTxs].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // PDF Setup
+        doc.setFont('helvetica');
+        let yPos = 20;
+
+        // Title
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Finance Code - Extrato do Mês ${monthName} ${year}`, 20, yPos);
+        yPos += 15;
+
+        // Initial Balances Section
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Saldos no Início do Mês', 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        Object.entries(initialBalances).forEach(([bank, balance]) => {
+          doc.text(`${bank}: ${brl(balance)}`, 30, yPos);
+          yPos += 6;
+        });
+        yPos += 5;
+
+        // Monthly Summary
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Resumo Mensal', 20, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Entradas: ${brl(entradas)}`, 30, yPos);
+        yPos += 6;
+        doc.text(`Saídas: ${brl(saidas)}`, 30, yPos);
+        yPos += 6;
+        doc.text(`Saldo Mensal: ${brl(saldoMensal)}`, 30, yPos);
+        yPos += 15;
+
+        // Transactions Table
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Extrato de Transações', 20, yPos);
+        yPos += 10;
+
+        // Table headers
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        const headers = ['Data', 'Categoria', 'Valor', 'Descrição', 'Banco', 'Destinatário'];
+        const colWidths = [20, 25, 25, 50, 25, 35];
+        let xPos = 20;
+
+        headers.forEach((header, i) => {
+          doc.text(header, xPos, yPos);
+          xPos += colWidths[i];
+        });
+        yPos += 5;
+
+        // Draw header line
+        doc.line(20, yPos, 190, yPos);
+        yPos += 5;
+
+        // Table rows
+        doc.setFont('helvetica', 'normal');
+        sortedTxs.forEach(tx => {
+          if (yPos > 270) { // New page if needed
+            doc.addPage();
+            yPos = 20;
+          }
+
+          xPos = 20;
+          const dateStr = tx.date ? new Date(tx.date).toLocaleDateString('pt-BR') : '';
+          const valStr = tx.type === 'Entrada' ? `+${brl(tx.val)}` : `-${brl(tx.val)}`;
+
+          const rowData = [
+            dateStr,
+            tx.cat,
+            valStr,
+            tx.desc || '',
+            tx.bank,
+            tx.recipient || ''
+          ];
+
+          rowData.forEach((data, i) => {
+            // Truncate long text
+            const maxWidth = colWidths[i] - 2;
+            const truncated = data.length > 15 ? data.substring(0, 15) + '...' : data;
+            doc.text(truncated, xPos, yPos);
+            xPos += colWidths[i];
+          });
+
+          yPos += 5;
+        });
+
+        yPos += 10;
+
+        // Final Balances Section
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Saldos Atuais', 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        Object.entries(finalBalances).forEach(([bank, balance]) => {
+          doc.text(`${bank}: ${brl(balance)}`, 30, yPos);
+          yPos += 6;
+        });
+        yPos += 10;
+
+        // Salary Section
+        if (bruto > 0) {
+          if (yPos > 220) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Salário Mensal', 20, yPos);
+          yPos += 10;
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`Bruto: ${brl(bruto)}`, 30, yPos);
+          yPos += 6;
+          doc.text(`Descontos: ${brl(descontoTrabalhador)}`, 30, yPos);
+          yPos += 6;
+          doc.text(`Líquido: ${brl(liquido)}`, 30, yPos);
+        }
+
+        // Save PDF
+        const fileName = `Finance_Code_Extrato_${monthName}_${year}.pdf`;
+        doc.save(fileName);
+        notif('Extrato exportado com sucesso!');
       }
 
 
