@@ -1828,34 +1828,53 @@
     }
 
     .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-family: var(--font);
-      font-size: 14px;
-      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 11px;
+      height: 28px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      border: none;
-      outline: none;
-      transition: all 0.15s;
-    }
-
-    .btn-primary {
-      background: var(--blue);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #0056CC;
-    }
-
-    .btn-secondary {
-      background: var(--bg2);
-      color: var(--label);
       border: 0.5px solid var(--sep-mid);
+      background: var(--card);
+      color: var(--label);
+      font-family: var(--font);
+      transition: all .1s;
+      white-space: nowrap;
+      line-height: 1;
+      box-shadow: var(--shadow-xs);
+      flex-shrink: 0;
     }
 
-    .btn-secondary:hover {
+    .btn:hover {
+      background: var(--bg2);
+      border-color: var(--sep);
+    }
+
+    .btn:active {
       background: var(--bg3);
+      transform: scale(.97);
+      box-shadow: none;
+    }
+
+    .btn svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    .btn-p {
+      background: var(--blue);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 1px 6px rgba(0, 122, 255, .3);
+    }
+
+    .btn-p:hover {
+      background: var(--blue);
+      filter: brightness(1.07);
     }
 
     .btn-danger {
@@ -5931,7 +5950,7 @@
       fbAuth.onAuthStateChanged(async user => {
         if (user) {
           _currentUid = user.uid;
-          await sbLoad();
+          await Promise.all([sbLoad(), sbLoadDebts()]);
           await enterApp(user.displayName || user.email.split('@')[0], user.email);
         } else {
           _currentUid = null;
@@ -6004,8 +6023,6 @@
 
         document.getElementById('auth-wrap').style.display = 'none';
         document.getElementById('shell').classList.add('on');
-        await sbLoad();
-        await sbLoadDebts();
         initMonths(); initCatFilter(); render(); updateDebtsUI();
         if (window.innerWidth > 768) {
           switchPatView('donut');
@@ -8792,8 +8809,8 @@
             </div>
             <div class="modal-footer">
               ${debtId ? '<button class="btn btn-danger" onclick="deleteCurrentDebt()">Excluir</button>' : ''}
-              <button class="btn btn-secondary" onclick="closeDebtModal()">Cancelar</button>
-              <button class="btn btn-primary" onclick="saveDebt()">Salvar</button>
+              <button class="btn" onclick="closeDebtModal()">Cancelar</button>
+              <button class="btn btn-p" onclick="saveDebt()">Salvar</button>
             </div>
           </div>
         `;
