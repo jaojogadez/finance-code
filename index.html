@@ -10205,9 +10205,21 @@
         const initialTxs = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear) && !t.ok);
         const initialBalances = {};
         initialTxs.forEach(t => {
+          if (!t.bank || t.bank === 'Dinheiro') return;
           if (!initialBalances[t.bank]) initialBalances[t.bank] = 0;
           if (t.type === 'Entrada') initialBalances[t.bank] += t.val;
           else if (t.type === 'Saída') initialBalances[t.bank] -= t.val;
+        });
+
+        // Banks with movement in current month
+        const movimentedBanks = new Set();
+        monthTxs.forEach(t => {
+          if (t.bank && t.bank !== 'Dinheiro') movimentedBanks.add(t.bank);
+          if (t.recipient && t.recipient !== 'Dinheiro') movimentedBanks.add(t.recipient);
+        });
+        initialTxs.forEach(t => {
+          if (t.bank && t.bank !== 'Dinheiro') movimentedBanks.add(t.bank);
+          if (t.recipient && t.recipient !== 'Dinheiro') movimentedBanks.add(t.recipient);
         });
 
         // Final balances: distribuição monetária usando todas as transações pagas (ok=true)
@@ -10293,8 +10305,9 @@
         yPos += 6;
 
         doc.setFont('helvetica', 'normal');
-        // Table: include all banks (even sem transações)
-        Object.keys(BANKS).forEach(bankName => {
+        // Table: somente bancos movimentados
+        const banksForInitial = Array.from(movimentedBanks).sort();
+        banksForInitial.forEach(bankName => {
           const bal = initialBalances[bankName] || 0;
           doc.text(bankName, marginLeft, yPos);
           doc.text(brl(bal), marginLeft + 90, yPos);
@@ -10397,7 +10410,8 @@
         yPos += 6;
 
         doc.setFont('helvetica', 'normal');
-        Object.keys(BANKS).forEach(bankName => {
+        const banksForFinal = Array.from(movimentedBanks).sort();
+        banksForFinal.forEach(bankName => {
           const bal = finalBalances[bankName] || 0;
           doc.text(bankName, marginLeft, yPos);
           doc.text(brl(bal), marginLeft + 90, yPos);
