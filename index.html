@@ -72,7 +72,7 @@
       --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
         "Helvetica Neue", Arial, sans-serif;
       --mono: "SF Mono", "Menlo", ui-monospace, monospace;
-      --sidebar-w: 276px;
+      --sidebar-w: 320px; /* Ajustado para acomodar conteúdo */
 
       /* accent = blue by default */
       --accent: var(--blue);
@@ -4506,6 +4506,11 @@
           visualize e organize suas movimentações</div>
         <!-- Action buttons row (mobile only) -->
         <div style="display:flex;align-items:center;gap:8px">
+          <!-- add transaction -->
+          <button onclick="addInlineRow()" title="Adicionar transação" style="width:auto;height:36px;border-radius:10px;padding:0 12px;display:flex;align-items:center;justify-content:center;background:var(--blue);border:none;color:#fff;box-shadow:var(--shadow-xs);flex-shrink:0;cursor:pointer;font-size:13px;font-weight:600">
+            <svg viewBox="0 0 18 18" width="14" height="14" fill="none" style="margin-right:6px"><path d="M9 2v14M2 9h14" stroke="white" stroke-width="2" stroke-linecap="round" /></svg>
+            Adicionar
+          </button>
           <!-- categories -->
           <button onclick="openCatModal()" title="Categorias"
             style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card);border:0.5px solid var(--sep-thin);box-shadow:var(--shadow-xs);flex-shrink:0;cursor:pointer;color:var(--label2)">
@@ -5288,7 +5293,7 @@
 
       // ── STATE ──
       const _now = new Date();
-      let curMo = _now.getMonth(), curYear = _now.getFullYear(), isDark = true, sortCol = 'date', sortDir = 1, cpOpen = false;
+      let curMo = _now.getMonth(), curYear = _now.getFullYear(), isDark = true, sortCol = 'date', sortDir = -1, cpOpen = false;
 
       let mobExtratoOrder = true; // true = mais recentes primeiro, false = mais antigos primeiro
 
@@ -8581,21 +8586,32 @@
         saveHistory('Adicionar linha');
         const newTx = blankRow(curMo);
         TXS.push(newTx);
-        render();
 
         // On mobile: open the tx-detail sheet for the new row
         if (window.innerWidth <= 768) {
+          render();
           setTimeout(() => openTxDetail(newTx.id), 50);
           return;
         }
 
-        // Desktop: open inline cell editor
-        const rows = getRows();
+        // Desktop: first render row list, then select the new row in sorted order
+        render();
+        let rows = getRows();
+        if (sortCol) {
+          rows = [...rows].sort((a, b) => {
+            let av = a[sortCol], bv = b[sortCol];
+            if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+            return av < bv ? -sortDir : av > bv ? sortDir : 0;
+          });
+        }
+
         const ri = rows.findIndex(r => r.id === newTx.id);
         if (ri === -1) return;
+
         selCell = { ri, ci: 1 };
         editCell = { ri, ci: 1 };
         render();
+
         setTimeout(() => {
           const td = document.querySelector(`#tbody tr[data-ri="${ri}"] td[data-ci="1"]`);
           if (td) td.scrollIntoView({ block: 'nearest', inline: 'nearest' });
