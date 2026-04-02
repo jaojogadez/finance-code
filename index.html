@@ -5932,7 +5932,7 @@
         if (user) {
           _currentUid = user.uid;
           await sbLoad();
-          enterApp(user.displayName || user.email.split('@')[0], user.email);
+          await enterApp(user.displayName || user.email.split('@')[0], user.email);
         } else {
           _currentUid = null;
           document.getElementById('auth-wrap').style.display = 'flex';
@@ -5988,7 +5988,7 @@
           .finally(() => { btn.textContent = 'Criar conta'; btn.disabled = false; });
       }
 
-      function enterApp(name, email) {
+      async function enterApp(name, email) {
         const parts = (name || '').trim().split(' ').filter(Boolean);
         const initials = parts.map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
