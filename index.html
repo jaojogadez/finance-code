@@ -1554,18 +1554,10 @@
       font-weight: 700;
       font-size: 11px;
       color: var(--label);
-      white-space: nowrap
-    }
-
-    .ws-health-hide-btn {
-      background: none;
-      border: 0.5px solid var(--sep-mid);
-      border-radius: 6px;
-      padding: 4px 6px;
-      cursor: pointer;
-      color: var(--label3);
-      display: flex;
-      align-items: center;
+      white-space: nowrap;
+      min-width: 92px;
+      text-align: right;
+      display: inline-block;
       transition: .12s;
       flex-shrink: 0;
     }
@@ -7916,18 +7908,22 @@
         const monthTxs = TXS.filter(t => t.mo === curMo && (t.yr === undefined || t.yr === curYear) && t.ok);
         let bruto = 0;
         let descontoTrabalhador = 0;
+        let totalSaidas = 0;
 
         monthTxs.forEach(t => {
           if (t.type === 'Entrada') {
             bruto += t.val;
           }
-          if (t.type === 'Saída' && (t.desc || '').toLowerCase().includes('desconto de trabalhador')) {
-            descontoTrabalhador += t.val;
+          if (t.type === 'Saída') {
+            totalSaidas += t.val;
+            if ((t.desc || '').toLowerCase().includes('desconto de trabalhador')) {
+              descontoTrabalhador += t.val;
+            }
           }
         });
 
         const liquido = bruto - descontoTrabalhador;
-        const pctRemaining = bruto > 0 ? Math.max(0, Math.min(100, Math.round(liquido / bruto * 100))) : 0;
+        const pctRemaining = bruto > 0 ? Math.max(0, Math.min(100, Math.round((bruto - totalSaidas) / bruto * 100))) : 0;
         const CIRC = 339.3; // 2π×54
         const arcLen = CIRC * pctRemaining / 100;
 
