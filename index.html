@@ -1801,6 +1801,72 @@
       transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
+    /* Debt modal inputs + selects customizados */
+    #debt-modal .form-group label {
+      color: var(--label3);
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+      text-transform: uppercase;
+    }
+
+    #debt-modal .form-group input[type="number"],
+    #debt-modal .form-group input[type="text"],
+    #debt-modal .form-group input[type="date"],
+    #debt-modal .form-group select,
+    #debt-modal .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 0.8px solid var(--sep-mid);
+      border-radius: 10px;
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--label);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    #debt-modal .form-group input[type="number"] {
+      text-align: right;
+      letter-spacing: 0.02em;
+    }
+
+    #debt-modal .form-group input[type="number"]::placeholder,
+    #debt-modal .form-group input[type="text"]::placeholder,
+    #debt-modal .form-group input[type="date"]::placeholder {
+      color: var(--label3);
+      font-weight: 500;
+    }
+
+    #debt-modal .form-group input:focus,
+    #debt-modal .form-group select:focus,
+    #debt-modal .form-group textarea:focus {
+      border-color: var(--blue);
+      background: var(--card);
+      box-shadow: 0 0 0 3px var(--blue-tint);
+    }
+
+    #debt-modal .form-group select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg fill='none' stroke='%23666' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 14px 14px;
+      padding-right: 36px;
+    }
+
+    #debt-modal .form-group textarea {
+      min-height: 80px;
+      font-family: var(--font);
+      font-weight: 500;
+    }
+
     /* Form sections */
     .form-section {
       margin-bottom: 20px;
