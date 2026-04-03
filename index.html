@@ -1709,10 +1709,7 @@
 ═══════════════════════════════ */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
@@ -1728,15 +1725,17 @@
 
     .modal-content {
       background: var(--card);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      max-width: 420px;
-      max-height: 90vh;
+      border-radius: var(--r-2xl);
+      width: min(900px, 95vw);
+      max-width: 900px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .22);
+      animation: popIn .18s cubic-bezier(.34, 1.56, .64, 1) both;
       overflow: hidden;
       transform: scale(0.9);
       transition: transform 0.3s;
-      display: flex;
-      flex-direction: column;
     }
 
     .modal-overlay.show .modal-content {
