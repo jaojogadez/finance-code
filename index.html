@@ -10276,169 +10276,198 @@
 
         // SMALLER DOCUMENT MARGINS
         const marginLeft = 12;
-        const marginRight = 198;
         const pageWidth = 210;
         const usableWidth = pageWidth - marginLeft - 12;
+
+        const firstDay = new Date(curYear, curMo, 1);
+        const lastDay = new Date(curYear, curMo + 1, 0);
+        const firstDayStr = firstDay.toLocaleDateString('pt-BR');
+        const lastDayStr = lastDay.toLocaleDateString('pt-BR');
 
         // PDF Setup
         doc.setFont('helvetica');
         let yPos = 16;
 
-        // Title
-        doc.setFontSize(18);
+        // Header
+        doc.setFontSize(20);
         doc.setFont('helvetica', 'bold');
-        doc.text(`Finance Code - Extrato do Mês ${monthName} ${year}`, marginLeft, yPos);
-        yPos += 14;
-
-        // Initial Balances Section (tabela completa)
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Saldos no Início do Mês', marginLeft, yPos);
+        doc.text(`Extrato de ${monthName} ${year}`, marginLeft, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Movimentações e dados no período de ${firstDayStr} até ${lastDayStr}`, marginLeft, yPos);
+        yPos += 8;
+        doc.line(marginLeft, yPos, marginLeft + usableWidth, yPos);
+        yPos += 10;
+
+        // Saldos antes das movimentações
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Banco', marginLeft, yPos);
-        doc.text('Saldo Inicial', marginLeft + 90, yPos);
+        doc.text(`Saldos antes das movimentações (${firstDayStr})`, marginLeft, yPos);
+        yPos += 7;
+
+        const banksList = Array.from(movimentedBanks).sort();
+        const bankColWidth = 42;
+        let xPos = marginLeft;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        banksList.forEach((bankName, idx) => {
+          if (xPos + bankColWidth > pageWidth - marginLeft) {
+            xPos = marginLeft;
+            yPos += 8;
+          }
+          doc.text(bankName, xPos, yPos);
+          xPos += bankColWidth;
+        });
+
+        yPos += 5;
+        doc.setFont('helvetica', 'normal');
+        xPos = marginLeft;
+        banksList.forEach((bankName) => {
+          if (xPos + bankColWidth > pageWidth - marginLeft) {
+            xPos = marginLeft;
+            yPos += 6;
+          }
+          doc.text(brl(initialBalances[bankName] || 0), xPos, yPos);
+          xPos += bankColWidth;
+        });
+        yPos += 12;
+
+        // Balancete Financeiro
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Balancete Financeiro (do período selecionado)', marginLeft, yPos);
+        yPos += 7;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total de Entradas', marginLeft, yPos);
+        doc.text('Total de Saídas', marginLeft + 70, yPos);
+        doc.text('Saldo', marginLeft + 140, yPos);
         yPos += 5;
         doc.line(marginLeft, yPos, marginLeft + usableWidth, yPos);
         yPos += 6;
 
         doc.setFont('helvetica', 'normal');
-        // Table: somente bancos movimentados
-        const banksForInitial = Array.from(movimentedBanks).sort();
-        banksForInitial.forEach(bankName => {
-          const bal = initialBalances[bankName] || 0;
-          doc.text(bankName, marginLeft, yPos);
-          doc.text(brl(bal), marginLeft + 90, yPos);
-          yPos += 6;
-        });
-        yPos += 8;
-
-        // Monthly Summary
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Resumo Mensal', marginLeft, yPos);
-        yPos += 7;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Entradas: ${brl(entradas)}`, marginLeft + 6, yPos);
-        yPos += 5;
-        doc.text(`Saídas: ${brl(saidas)}`, marginLeft + 6, yPos);
-        yPos += 5;
-        doc.text(`Saldo Mensal: ${brl(saldoMensal)}`, marginLeft + 6, yPos);
+        doc.text(brl(entradas), marginLeft, yPos);
+        doc.text(brl(saidas), marginLeft + 70, yPos);
+        doc.text(brl(saldoMensal), marginLeft + 140, yPos);
         yPos += 12;
 
-        // Transactions Table
-        doc.setFontSize(14);
+        // Fluxo de Caixa
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Extrato de Transações', marginLeft, yPos);
-        yPos += 8;
+        doc.text('Fluxo de Caixa', marginLeft, yPos);
+        yPos += 7;
 
-        const headers = ['Data', 'Categoria', 'Valor', 'Descrição', 'Banco', 'Destinatário'];
-        const colWidths = [18, 28, 25, 70, 25, 35];
+        const tableHeaders = ['Data', 'Categoria', 'Valor', 'Descrição', 'Banco'];
+        const tableWidths = [20, 34, 28, 70, 36];
 
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
-
-        let xPos = marginLeft;
-        headers.forEach((header, i) => {
+        xPos = marginLeft;
+        tableHeaders.forEach((header, i) => {
           doc.text(header, xPos, yPos);
-          xPos += colWidths[i];
+          xPos += tableWidths[i];
         });
         yPos += 5;
         doc.line(marginLeft, yPos, marginLeft + usableWidth, yPos);
-        yPos += 5;
+        yPos += 6;
 
         doc.setFont('helvetica', 'normal');
         sortedTxs.forEach(tx => {
-          if (yPos > 272) {
+          if (yPos > 278) {
             doc.addPage();
             yPos = 16;
           }
 
           const dateStr = tx.date ? new Date(tx.date).toLocaleDateString('pt-BR') : '';
           const valStr = tx.type === 'Entrada' ? `+${brl(tx.val)}` : `-${brl(tx.val)}`;
-          const rowData = [dateStr, tx.cat, valStr, tx.desc || '', tx.bank, tx.recipient || ''];
+          const rowData = [dateStr, tx.cat, valStr, tx.desc || '', tx.bank || ''];
+          const rowLines = rowData.map((cell, i) => doc.splitTextToSize(String(cell), tableWidths[i] - 2));
+          const rowHeight = Math.max(...rowLines.map(lines => lines.length)) * 5;
 
-          const cellLines = rowData.map((cell, i) => {
-            const text = String(cell);
-            return doc.splitTextToSize(text, colWidths[i] - 2);
-          });
-
-          const rowHeight = Math.max(...cellLines.map(lines => lines.length)) * 5;
-
-          // Pagina nova se extrapolar
           if (yPos + rowHeight > 282) {
             doc.addPage();
             yPos = 16;
           }
 
-          for (let lineIndex = 0; lineIndex < Math.max(...cellLines.map(lines => lines.length)); lineIndex++) {
+          for (let lineIndex = 0; lineIndex < Math.max(...rowLines.map(lines => lines.length)); lineIndex++) {
             xPos = marginLeft;
-            for (let colIndex = 0; colIndex < cellLines.length; colIndex++) {
-              const lines = cellLines[colIndex];
-              const textLine = lines[lineIndex] || '';
-              doc.text(textLine, xPos, yPos);
-              xPos += colWidths[colIndex];
-            }
+            rowLines.forEach((lines, colIndex) => {
+              doc.text(lines[lineIndex] || '', xPos, yPos);
+              xPos += tableWidths[colIndex];
+            });
             yPos += 5;
           }
-
-          yPos += 1;
+          yPos += 2;
         });
 
-        yPos += 8;
-
-        // Final Balances Section
-        if (yPos > 254) {
+        if (yPos + 18 > 282) {
           doc.addPage();
           yPos = 16;
         }
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.text('(...continuação do fluxo até o fim do período)', marginLeft, yPos);
+        yPos += 12;
 
-        doc.setFontSize(14);
+        // Renda Mensal
+        if (yPos > 262) {
+          doc.addPage();
+          yPos = 16;
+        }
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Saldos Atuais', marginLeft, yPos);
-        yPos += 8;
+        doc.text('Renda Mensal', marginLeft, yPos);
+        yPos += 7;
 
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('Banco', marginLeft, yPos);
-        doc.text('Saldo Atual', marginLeft + 90, yPos);
+        doc.text('Bruto', marginLeft, yPos);
+        doc.text('Descontos', marginLeft + 70, yPos);
+        doc.text('Líquido', marginLeft + 140, yPos);
         yPos += 5;
         doc.line(marginLeft, yPos, marginLeft + usableWidth, yPos);
         yPos += 6;
 
         doc.setFont('helvetica', 'normal');
-        const banksForFinal = Array.from(movimentedBanks).sort();
-        banksForFinal.forEach(bankName => {
-          const bal = finalBalances[bankName] || 0;
-          doc.text(bankName, marginLeft, yPos);
-          doc.text(brl(bal), marginLeft + 90, yPos);
-          yPos += 6;
-        });
-        yPos += 8;
+        doc.text(brl(bruto), marginLeft, yPos);
+        doc.text(brl(descontoTrabalhador), marginLeft + 70, yPos);
+        doc.text(brl(liquido), marginLeft + 140, yPos);
+        yPos += 12;
 
-        // Salary Section
-        if (bruto > 0) {
-          if (yPos > 254) {
+        // Saldos depois das movimentações
+        if (yPos > 254) {
+          doc.addPage();
+          yPos = 16;
+        }
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Saldos depois das movimentações (${lastDayStr})`, marginLeft, yPos);
+        yPos += 7;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Banco', marginLeft, yPos);
+        doc.text('Saldo', marginLeft + 90, yPos);
+        yPos += 5;
+        doc.line(marginLeft, yPos, marginLeft + usableWidth, yPos);
+        yPos += 6;
+
+        doc.setFont('helvetica', 'normal');
+        banksList.forEach(bankName => {
+          if (yPos > 282) {
             doc.addPage();
             yPos = 16;
           }
-
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Salário Mensal', marginLeft, yPos);
-          yPos += 8;
-
-          doc.setFont('helvetica', 'normal');
-          doc.text(`Bruto: ${brl(bruto)}`, marginLeft + 6, yPos);
-          yPos += 5;
-          doc.text(`Descontos: ${brl(descontoTrabalhador)}`, marginLeft + 6, yPos);
-          yPos += 5;
-          doc.text(`Líquido: ${brl(liquido)}`, marginLeft + 6, yPos);
-          yPos += 5;
-        }
+          doc.text(bankName, marginLeft, yPos);
+          doc.text(brl(finalBalances[bankName] || 0), marginLeft + 90, yPos);
+          yPos += 6;
+        });
 
         // Save PDF
         const fileName = `Finance_Code_Extrato_${monthName}_${year}.pdf`;
