@@ -5729,6 +5729,12 @@
         </div>
         <div class="fg"><label class="fl">Descrição</label><input type="text" class="fi" id="m-desc"
             placeholder="Ex: iFood, Salário, Netflix..."></div>
+        <div class="fg" id="m-debt-wrapper" style="display:none">
+          <label class="fl">Dívida vinculada</label>
+          <select class="fi" id="m-debt-id">
+            <option value="">Selecione a dívida...</option>
+          </select>
+        </div>
         <div class="fr">
           <div class="fg"><label class="fl">Valor (R$)</label><input type="text" inputmode="decimal" class="fi"
               id="m-val" placeholder="Ex: 1234,56"
@@ -5750,6 +5756,7 @@
               <option>Compras</option>
               <option>Assinaturas</option>
               <option>Recarga</option>
+              <option>Dívidas</option>
             </select>
           </div>
         </div>
@@ -5815,6 +5822,7 @@
         'Compras': { c: '#E67E22', bg: 'rgba(230,126,34,.14)' },
         'Assinaturas': { c: '#6B6B6B', bg: 'rgba(107,107,107,.14)' },
         'Recarga': { c: '#F2C94C', bg: 'rgba(242,201,76,.14)' },
+        'Dívidas': { c: '#EB5757', bg: 'rgba(235,87,87,.14)' },
       };
 
       let COLS = [
@@ -9470,10 +9478,37 @@
       // ══════════════════════════════════════════
       //  MODAL
       // ══════════════════════════════════════════
+      function refreshDebtLinkUI() {
+        const cat = document.getElementById('m-cat').value;
+        const wrapper = document.getElementById('m-debt-wrapper');
+        if (!wrapper) return;
+        if (cat === 'Dívidas') {
+          wrapper.style.display = 'block';
+          populateDebtSelect();
+        } else {
+          wrapper.style.display = 'none';
+          document.getElementById('m-debt-id').value = '';
+        }
+      }
+
+      function populateDebtSelect() {
+        const sel = document.getElementById('m-debt-id');
+        if (!sel) return;
+        const activeDebts = getDebtsByStatus('Ativa');
+        sel.innerHTML = '<option value="">Selecione a dívida...</option>' + activeDebts.map(debt => {
+          const remaining = Math.max(0, debt.amount - debt.paid);
+          return `<option value="${debt.id}">${esc(debt.name || 'Dívida sem nome')} - ${brl(remaining)} restante</option>`;
+        }).join('');
+      }
+
       function openModal() {
         document.getElementById('modal-bg').classList.add('on');
         const inp = document.getElementById('m-val');
         if (inp) { inp.value = ''; inp.placeholder = 'Ex: 1234,56'; }
+        document.getElementById('m-desc').value = '';
+        document.getElementById('m-dest').value = '';
+        document.getElementById('m-cat').value = 'Salário';
+        refreshDebtLinkUI();
       }
       function closeModal() { document.getElementById('modal-bg').classList.remove('on'); }
 
@@ -9513,18 +9548,38 @@
         if (e.target === document.getElementById('modal-bg')) closeModal();
       });
 
+      document.getElementById('m-cat').addEventListener('change', refreshDebtLinkUI);
+
       document.getElementById('btn-save').addEventListener('click', () => {
         const type = document.getElementById('m-type').value;
         const val = parseBankVal(document.getElementById('m-val').value);
         if (isNaN(val) || val <= 0) { notif('Informe um valor válido'); return; }
         const date = document.getElementById('m-date').value;
         const mo = date ? new Date(date + 'T12:00').getMonth() : curMo;
+        const cat = document.getElementById('m-cat').value;
+        const status = document.getElementById('m-status').value;
+        const paid = status === 'Pago';
+        const debtId = Number(document.getElementById('m-debt-id')?.value || 0);
+
+        let desc = document.getElementById('m-desc').value.trim() || '—';
+        if (cat === 'Dívidas' && debtId) {
+          const debt = DEBTS.find(d => d.id === debtId);
+          if (debt) {
+            if (!desc || desc === '—') desc = debt.name || 'Dívida';
+            if (paid) {
+              const newPaid = Math.min(debt.amount, (debt.paid || 0) + val);
+              const newStatus = newPaid >= debt.amount ? 'Paga' : 'Ativa';
+              updateDebt(debtId, { paid: newPaid, status: newStatus });
+            }
+          }
+        }
+
         TXS.push({
           id: nxtId++,
-          ok: document.getElementById('m-status').value === 'Pago',
-          cat: document.getElementById('m-cat').value,
+          ok: paid,
+          cat,
           val,
-          desc: document.getElementById('m-desc').value || '—',
+          desc,
           fv: document.getElementById('m-fv').value,
           type, date,
           recipient: document.getElementById('m-dest').value || '—',
@@ -9532,10 +9587,15 @@
           mo,
         });
         saveHistory('Adicionar transação');
+
         // Reset form
         document.getElementById('m-desc').value = '';
         document.getElementById('m-val').value = '';
         document.getElementById('m-dest').value = '';
+        document.getElementById('m-debt-id').value = '';
+        document.getElementById('m-cat').value = 'Salário';
+        refreshDebtLinkUI();
+
         closeModal();
         render();
         notif('Transação salva com sucesso ✓');
